@@ -108,7 +108,9 @@ private:
     /**
      * @brief Apply new layout parameters to all slots.
      */
-    void reorganize_table(qint32 new_column_count, double new_scale, bool new_rotated = false);
+    void reorganize_table(
+        qint32 new_column_count, double new_scale, bool new_rotated = false
+    );
 
     QGridLayout* layout;
     QSvgRenderer* renderer {};

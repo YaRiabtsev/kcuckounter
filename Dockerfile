@@ -14,14 +14,24 @@ WORKDIR /usr/src/app
 
 COPY . .
 
+ARG COVERAGE=OFF
+
 RUN cmake -S . -B build \
       -DCMAKE_CXX_COMPILER=clang++ \
       -DCMAKE_INSTALL_PREFIX=/usr/local/kde/usr \
       -DQT_MAJOR_VERSION=6 \
-      -DCMAKE_BUILD_TYPE=Debug \
-      -DBUILD_TESTS=ON \
-      -DCOVERAGE=ON
+      -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_TESTS=${COVERAGE} \
+      -DCOVERAGE=${COVERAGE}
 
-RUN cmake --build build --target coverage --parallel $(nproc)
+RUN if [ "${COVERAGE}" = "ON" ]; then \
+        cmake --build build --target coverage --parallel $(nproc); \
+    else \
+        cmake --build build --parallel $(nproc); \
+    fi
 
-CMD ["/bin/bash"]
+RUN cmake --install build
+
+ENV PATH="/usr/local/kde/usr/bin:${PATH}"
+
+CMD ["kcuckounter"]

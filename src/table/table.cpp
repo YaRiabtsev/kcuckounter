@@ -75,7 +75,9 @@ void Table::add_new_table_slot(const bool is_active) {
         table_slot, &TableSlot::table_slot_reshuffled, this,
         &Table::on_table_slot_reshuffled
     );
-    connect(table_slot, &TableSlot::user_quizzed, this, &Table::on_user_quizzed);
+    connect(
+        table_slot, &TableSlot::user_quizzed, this, &Table::on_user_quizzed
+    );
     connect(
         table_slot, &TableSlot::user_answered, this, &Table::on_user_answered
     );
@@ -92,7 +94,9 @@ void Table::add_new_table_slot(const bool is_active) {
         this, &Table::table_slot_resized, table_slot,
         [table_slot](const QSize newFixedSize) {
             table_slot->setFixedSize(newFixedSize);
-            table_slot->set_rotated(newFixedSize.width() > newFixedSize.height());
+            table_slot->set_rotated(
+                newFixedSize.width() > newFixedSize.height()
+            );
         }
     );
     connect(this, &Table::can_remove, table_slot, &TableSlot::on_can_remove);
@@ -165,7 +169,8 @@ void Table::calculate_new_column_count(
 }
 
 void Table::reorganize_table(
-    const qint32 new_column_count, const double new_scale, const bool new_rotated
+    const qint32 new_column_count, const double new_scale,
+    const bool new_rotated
 ) {
     // for (TableSlot* item : std::as_const(items)) {
     //     layout->removeWidget(item);
@@ -177,8 +182,8 @@ void Table::reorganize_table(
     }
 
     const QSizeF new_fixed_size(
-    new_rotated ? bounds.height() * new_scale : bounds.width() * new_scale,
-    new_rotated ? bounds.width() * new_scale : bounds.height() * new_scale
+        new_rotated ? bounds.height() * new_scale : bounds.width() * new_scale,
+        new_rotated ? bounds.width() * new_scale : bounds.height() * new_scale
     );
     emit table_slot_resized(new_fixed_size.toSize());
 
@@ -214,8 +219,7 @@ void Table::pick_up_cards() {
            && (picked.size() < table_slot_count_limit
                || KGameDifficulty::globalLevel() == KGameDifficultyLevel::Custom
            )) {
-        const int idx = QRandomGenerator::global()
-                     ->bounded(available.size());
+        const int idx = QRandomGenerator::global()->bounded(available.size());
         qint32 key;
         {
             auto it = available.begin();
@@ -232,12 +236,10 @@ void Table::pick_up_cards() {
 }
 
 void Table::set_renderer(const QString& card_theme) {
-    renderer = new QSvgRenderer(
-        QStandardPaths::locate(
-            QStandardPaths::GenericDataLocation,
-            QString("carddecks/svg-%1/%1.svgz").arg(card_theme)
-        )
-    );
+    renderer = new QSvgRenderer(QStandardPaths::locate(
+        QStandardPaths::GenericDataLocation,
+        QString("carddecks/svg-%1/%1.svgz").arg(card_theme)
+    ));
     bounds = renderer->boundsOnElement("back");
 }
 

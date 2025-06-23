@@ -8,9 +8,8 @@
 [//]: # ([![codecov]&#40;https://codecov.io/gh/YaRiabtsev/kcuckounter/graph/badge.svg?token=MCNEJFWMDU&#41;]&#40;https://codecov.io/gh/YaRiabtsev/kcuckounter&#41;)
 [![license](https://img.shields.io/github/license/YaRiabtsev/kcuckounter?color=e6e6e6)](https://github.com/YaRiabtsev/kcuckounter/blob/master/license)
 
-> "Just play poker in Indian Casinos and stay single and live where and how he wants to, if people would let him,"
-> 
-> R.P. said — but Chief released him.
+> Just play poker in Indian Casinos and stay single and live where and how he wants to, if people would let him,
+> <br> P.R. said — but Chief released him.
 
 They’re out there. <br>
 Black Kings and Red Queens in suits — up before me, to be committed to the repository and get mopped up before you can memorize them.
@@ -86,14 +85,20 @@ For detailed documentation see the [Documentation](https://yariabtsev.github.io/
 
 ## Docker
 
-The provided `Dockerfile` can be used to build the project in a container:
+The provided `Dockerfile` builds **kcuckounter** inside an Arch Linux
+container. After the image is created the game can be started directly:
 
 ```bash
 docker build -t kcuckounter .
+docker run --rm kcuckounter
 ```
 
-The container installs all dependencies and builds the project with coverage
-enabled.
+Unit tests and coverage generation can be enabled during the build by passing
+additional build arguments:
+
+```bash
+docker build -t kcuckounter --build-arg COVERAGE=ON .
+```
 
 ## Security Policy
 

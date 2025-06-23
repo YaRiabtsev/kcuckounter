@@ -54,7 +54,7 @@ StrategyInfo::StrategyInfo(
     setModal(true);
 
     strategies_group
-    = new KConfigGroup(KSharedConfig::openConfig(), "CCStrategies");
+        = new KConfigGroup(KSharedConfig::openConfig(), "CCStrategies");
 
     init_strategies();
 
@@ -212,9 +212,7 @@ void StrategyInfo::show_strategy_by_name(const QString& name) {
     }
 }
 
-const QVector<Strategy*>& StrategyInfo::get_strategies() const {
-    return items;
-}
+const QVector<Strategy*>& StrategyInfo::get_strategies() const { return items; }
 
 void StrategyInfo::init_strategies() {
 

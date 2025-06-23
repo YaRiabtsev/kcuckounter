@@ -153,13 +153,12 @@ public:
     [[nodiscard]] static qint32 get_suit(qint32 id) noexcept;
 
     /**
- * @brief Rotate the SVG by 90 degrees.
- *
- * When enabled the card image is painted in landscape
- * orientation without changing the widget geometry.
- */
+     * @brief Rotate the SVG by 90 degrees.
+     *
+     * When enabled the card image is painted in landscape
+     * orientation without changing the widget geometry.
+     */
     void set_rotated(bool rotated);
-
 
 private:
     QString svg_name;

@@ -152,8 +152,10 @@ void Cards::paintEvent(QPaintEvent* event) {
             painter.translate(-height() / 2.0, -width() / 2.0);
             renderer->render(
                 &painter, svg_name,
-                QRectF(0, 0, static_cast<qreal>(height()),
-                       static_cast<qreal>(width()))
+                QRectF(
+                    0, 0, static_cast<qreal>(height()),
+                    static_cast<qreal>(width())
+                )
             );
         } else {
             renderer->render(&painter, svg_name, rect());
@@ -197,6 +199,7 @@ void Cards::set_rotated(const bool rotated) {
         update();
     }
 }
+
 //
 // void Cards::onResized(QSize newFixedSize) {
 //    if (size() != newFixedSize) {

@@ -1,0 +1,38 @@
+PROJECT_NAME           = "kcuckounter"
+PROJECT_NUMBER         = 1.0
+PROJECT_BRIEF          = "A tool for improving arithmetic skills and memory"\
+                         "retention through counting cards in different"\
+                         "table-slots with different strategies."
+
+
+INPUT                  = src
+RECURSIVE              = YES
+
+OUTPUT_DIRECTORY       = docs
+
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+
+EXTRACT_PRIVATE        = YES
+
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_LOCAL_CLASSES  = YES
+EXTRACT_LOCAL_METHODS  = YES
+EXTRACT_ANON_NSPACES   = YES
+HIDE_SCOPE_NAMES       = NO
+SHOW_INCLUDE_FILES     = YES
+
+QT_AUTOBRIEF           = YES
+
+GROUP_MEMBERS          = YES
+DEFAULT_MEMBER_GROUP   = "alphabetical"
+
+REFERENCED_BY_ALL      = YES
+
+SHOW_INCLUDE_FILES     = YES
+SOURCE_BROWSER         = YES
+
+MARKDOWN_SUPPORT       = YES
+OPTIMIZE_OUTPUT_FOR_C  = YES

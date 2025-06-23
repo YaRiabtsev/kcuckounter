@@ -1,0 +1,294 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2025 Yaroslav Riabtsev <yaroslav.riabtsev@rwth-aachen.de>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+// Qt
+#include <QRandomGenerator>
+#include <QStandardPaths>
+#include <QSvgRenderer>
+#include <QTimer>
+#include <QVBoxLayout>
+#include <QtMath>
+// own
+#include "strategy/strategyinfo.hpp"
+#include "table/table.hpp"
+#include "table/tableslot.hpp"
+
+Table::Table(QWidget* parent)
+    : QWidget(parent) {
+    countdown = new QTimer(this);
+    connect(countdown, &QTimer::timeout, this, &Table::pick_up_cards);
+
+    set_renderer("tigullio-international");
+    strategy_info = new StrategyInfo(renderer);
+
+    layout = new QGridLayout();
+    setLayout(layout);
+}
+
+void Table::on_table_slot_activated() {
+    const auto* table_slot = qobject_cast<TableSlot*>(sender());
+    available.insert(layout->indexOf(table_slot));
+    add_new_table_slot();
+    calculate_new_column_count(size(), bounds.size(), items.count());
+    emit can_remove(table_slot_count_limit < available.size());
+}
+
+void Table::add_new_table_slot(const bool is_active) {
+    auto* tableSlot = new TableSlot(strategy_info, renderer, is_active, this);
+    if (is_active) {
+        available.insert(items.size());
+    }
+    connect(
+        tableSlot, &TableSlot::table_slot_activated, this,
+        &Table::on_table_slot_activated
+    );
+    connect(
+        tableSlot, &TableSlot::table_slot_finished, this,
+        &Table::on_table_slot_finished
+    );
+    connect(
+        tableSlot, &TableSlot::table_slot_removed, this,
+        &Table::on_table_slot_removed
+    );
+    connect(
+        tableSlot, &TableSlot::table_slot_reshuffled, this,
+        &Table::on_table_slot_reshuffled
+    );
+    connect(tableSlot, &TableSlot::user_quizzed, this, &Table::on_user_quizzed);
+    connect(
+        tableSlot, &TableSlot::user_answered, this, &Table::on_user_answered
+    );
+    connect(
+        tableSlot, &TableSlot::swap_target_selected, this,
+        &Table::on_swap_target_selected
+    );
+    connect(
+        tableSlot, &TableSlot::strategy_info_assist, this,
+        &Table::on_strategy_info_assist
+    );
+    connect(this, &Table::game_paused, tableSlot, &TableSlot::on_game_paused);
+    connect(
+        this, &Table::table_slot_resized, tableSlot,
+        [tableSlot](const QSize newFixedSize) {
+            tableSlot->setFixedSize(newFixedSize);
+        }
+    );
+    connect(this, &Table::can_remove, tableSlot, &TableSlot::on_can_remove);
+    items.push_back(tableSlot);
+}
+
+void Table::on_table_slot_finished() {
+    const auto* table_slot = qobject_cast<TableSlot*>(sender());
+    available.remove(layout->indexOf(table_slot));
+    //    qDebug() << available;
+}
+
+void Table::on_table_slot_removed() {
+    const auto* table_slot = qobject_cast<TableSlot*>(sender());
+    items.remove(layout->indexOf(table_slot));
+    available.remove(layout->indexOf(table_slot));
+    jokers.remove(layout->indexOf(table_slot));
+    calculate_new_column_count(size(), bounds.size(), items.count());
+    emit can_remove(available.size() > table_slot_count_limit);
+}
+
+void Table::on_table_slot_reshuffled() {
+    const auto* table_slot = qobject_cast<TableSlot*>(sender());
+    available.insert(layout->indexOf(table_slot));
+}
+
+void Table::on_user_quizzed() {
+    countdown->stop();
+    const auto* table_slot = qobject_cast<TableSlot*>(sender());
+    jokers.insert(layout->indexOf(table_slot));
+    available.remove(layout->indexOf(table_slot));
+}
+
+void Table::on_user_answered(const bool correct) {
+    const auto* table_slot = qobject_cast<TableSlot*>(sender());
+    jokers.remove(layout->indexOf(table_slot));
+    available.insert(layout->indexOf(table_slot));
+    if (jokers.empty()) {
+        countdown->stop();
+        countdown->start(300);
+    }
+    emit score_update(correct);
+}
+
+void Table::calculate_new_column_count(
+    const QSizeF& table_size, const QSizeF& aspect_ratio, int item_count
+) {
+    int new_column_count = 1;
+    double new_scale = 0;
+    for (int testColumnCount = 1; testColumnCount <= item_count;
+         testColumnCount++) {
+        const double test_scale = 0.9
+            * qMin(table_size.width()
+                       / (testColumnCount * aspect_ratio.width()),
+                   table_size.height()
+                       / (qCeil(item_count * 1.0 / testColumnCount)
+                          * aspect_ratio.height()));
+        if (test_scale > new_scale) {
+            new_scale = test_scale;
+            new_column_count = testColumnCount;
+        }
+    }
+    reorganize_table(new_column_count, new_scale);
+}
+
+void Table::reorganize_table(
+    const qint32 new_column_count, const double new_scale
+) {
+    while (layout->count()) {
+        const QLayoutItem* item = layout->takeAt(0);
+        item->widget()->hide();
+        delete item;
+    }
+
+    const QSizeF new_fixed_size(
+        bounds.width() * new_scale, bounds.height() * new_scale
+    );
+    emit table_slot_resized(new_fixed_size.toSize());
+
+    const qint32 items_count = items.count();
+    for (qint32 i = 0; i < items_count; i++) {
+        TableSlot* item = items[i];
+        layout->addWidget(item, i / new_column_count, i % new_column_count);
+        item->show();
+    }
+    column_count = new_column_count;
+    scale = new_scale;
+}
+
+void Table::on_swap_target_selected() {
+    swap_target.push_back(layout->indexOf(qobject_cast<TableSlot*>(sender())));
+    if (swap_target.size() == 2) {
+        items.swapItemsAt(swap_target[0], swap_target[1]);
+        swap_target.clear();
+    }
+    reorganize_table(column_count, scale);
+}
+
+void Table::pick_up_cards() {
+    //    qDebug() << available;
+    if (available.empty()) {
+        countdown->stop();
+        emit game_over();
+        return;
+    }
+    QSet<qint32> picked;
+    while (!available.empty()
+           && (picked.size() < table_slot_count_limit
+               || KGameDifficulty::globalLevel() == KGameDifficultyLevel::Custom
+           )) {
+        auto it = available.begin();
+        const qint32 idx
+            = QRandomGenerator::global()->bounded(available.size());
+        std::advance(it, idx);
+        if (!picked.contains(*it)) {
+            picked.insert(*it);
+            items[*it]->pick_up_card();
+            available.remove(*it);
+        }
+    }
+    available.unite(picked);
+    // emit deHighlighting
+    picked.clear();
+}
+
+void Table::set_renderer(const QString& card_theme) {
+    renderer = new QSvgRenderer(QStandardPaths::locate(
+        QStandardPaths::GenericDataLocation,
+        QString("carddecks/svg-%1/%1.svgz").arg(card_theme)
+    ));
+    bounds = renderer->boundsOnElement("back");
+}
+
+void Table::create_new_game(KGameDifficultyLevel::StandardLevel level) {
+    countdown->stop();
+    launching = true;
+    while (!items.empty()) {
+        TableSlot* last = items.last();
+        last->hide();
+        items.pop_back();
+        delete last;
+    }
+    available.clear();
+    jokers.clear();
+    switch (level) {
+    case KGameDifficultyLevel::Easy:
+        // tableSlotsCount: 1+
+        // cardPickUpsAtTime: 1
+        table_slot_count_limit = 1;
+        break;
+    case KGameDifficultyLevel::Medium:
+        // tableSlotsCount: 2+
+        // cardPickUpsAtTime: 2
+        table_slot_count_limit = 2;
+        break;
+    case KGameDifficultyLevel::Hard:
+        // tableSlotsCount: 4+
+        // cardPickUpsAtTime: 4
+        table_slot_count_limit = 4;
+        break;
+    case KGameDifficultyLevel::Custom: // Nightmare
+        // tableSlotsCount: 6+
+        // cardPickUpsAtTime: all
+        table_slot_count_limit = 6;
+        break;
+    default:
+        break;
+    }
+    while (items.count() < table_slot_count_limit) {
+        add_new_table_slot(true);
+    }
+    add_new_table_slot();
+    calculate_new_column_count(size(), bounds.size(), items.count());
+}
+
+void Table::pause(const bool paused) {
+    if (launching) {
+        launching = false;
+        if (const TableSlot* last = items.last(); last->is_fake()) {
+            items.pop_back();
+            delete last;
+            calculate_new_column_count(size(), bounds.size(), layout->count());
+        }
+    }
+    emit game_paused(paused);
+    if (paused) {
+        countdown->stop();
+    } else if (jokers.empty()) {
+        countdown->stop();
+        countdown->start(300);
+    }
+}
+
+void Table::resizeEvent(QResizeEvent* event) {
+    QWidget::resizeEvent(event);
+
+    calculate_new_column_count(size(), bounds.size(), items.count());
+}
+
+void Table::on_strategy_info_assist() const { strategy_info->show(); }

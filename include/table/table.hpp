@@ -50,6 +50,8 @@ public:
 
     void pause(bool paused);
 
+    void force_game_over();
+
 signals:
 
     void game_paused(bool paused);

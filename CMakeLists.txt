@@ -124,9 +124,10 @@ if (BUILD_TESTS)
 
     qt_add_executable(unit_tests
             tests/main.cpp
-            tests/test_cards.cpp tests/test_strategy.cpp)
+            tests/test_cards.cpp tests/test_strategy.cpp tests/test_table.cpp
+)
     set_source_files_properties(
-            tests/test_cards.cpp tests/test_strategy.cpp
+            tests/test_cards.cpp tests/test_strategy.cpp tests/test_table.cpp
             PROPERTIES HEADER_FILE_ONLY ON)
     target_link_libraries(unit_tests PRIVATE kcuckounter_lib Qt6::Test)
     add_test(NAME unit_tests COMMAND unit_tests)
@@ -186,7 +187,7 @@ if (BUILD_TESTS)
                     -instr-profile=${PROFDATA_FILE}
                     -format=html
                     -output-dir=${COVERAGE_REPORT_DIR}
-                    -ignore-filename-regex='.*/[bt].*/.*'
+                    -ignore-filename-regex='.*/\(tests|build|include\)/.*'
                     -show-branches=count
                     -show-line-counts
                     -show-regions
@@ -197,7 +198,7 @@ if (BUILD_TESTS)
                     COMMAND ${LLVM_COV} export $<TARGET_FILE:unit_tests>
                     -instr-profile=${PROFDATA_FILE}
                     -format=lcov
-                    -ignore-filename-regex='.*/[bt].*/.*' > ${CMAKE_BINARY_DIR}/coverage.info
+                    -ignore-filename-regex='.*/\(tests|build|include\)*/.*' > ${CMAKE_BINARY_DIR}/coverage.info
                     DEPENDS unit_tests kcuckounter_lib
             )
         else ()

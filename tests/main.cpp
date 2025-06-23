@@ -24,10 +24,11 @@
 
 #include "test_cards.cpp"
 #include "test_strategy.cpp"
-#include <QCoreApplication>
+#include "test_table.cpp"
+#include <QApplication>
 
 int main(int argc, char* argv[]) {
-    QCoreApplication app(argc, argv);
+    QApplication app(argc, argv);
     int status = 0;
 
     TestStrategy strategyTest;
@@ -35,6 +36,9 @@ int main(int argc, char* argv[]) {
 
     TestCards cardsTest;
     status |= QTest::qExec(&cardsTest, argc, argv);
+
+    TestTable tableTest;
+    status |= QTest::qExec(&tableTest, argc, argv);
 
     return status;
 }

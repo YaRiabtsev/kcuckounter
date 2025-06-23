@@ -23,6 +23,8 @@
  */
 
 // Qt
+#include <QCloseEvent>
+#include <QMessageBox>
 #include <QStatusBar>
 // KDEGames
 #include <KGameClock>
@@ -72,6 +74,11 @@ void MainWindow::setup_actions() {
     action_pause = KGameStandardAction::pause(
         this, &MainWindow::pause_game, actionCollection()
     );
+    action_end_game = actionCollection()->addAction(QStringLiteral("game_end"));
+    action_end_game->setText(i18n("End Game"));
+    connect(
+        action_end_game, &QAction::triggered, this, &MainWindow::force_end_game
+    );
 
     KGameDifficulty::global()->addStandardLevelRange(
         KGameDifficultyLevel::Easy, KGameDifficultyLevel::Hard,
@@ -89,15 +96,45 @@ void MainWindow::setup_actions() {
     setupGUI(Default, "kcuckounterui.rc");
 }
 
-void MainWindow::new_game() const {
+void MainWindow::new_game() {
+    if (score.second > 0) {
+        const auto res = QMessageBox::question(
+            this, i18n("End Game"),
+            i18n("End current game and save the result?"),
+            QMessageBox::Yes | QMessageBox::No
+        );
+        if (res == QMessageBox::No) {
+            return;
+        }
+        force_end_game();
+    }
     game_clock->restart();
     game_clock->pause();
     table->create_new_game(KGameDifficulty::globalLevel());
     if (!action_pause->isChecked()) {
         action_pause->setChecked(true);
     }
+    score = { 0, 0 };
+    score_label->setText(i18n("Score: 0/0"));
     KGameDifficulty::global()->setGameRunning(false);
     time_label->setText(i18n("Time: 00:00"));
+}
+
+void MainWindow::force_end_game() const { table->force_game_over(); }
+
+void MainWindow::closeEvent(QCloseEvent* event) {
+    if (score.second > 0) {
+        const auto res = QMessageBox::question(
+            this, i18n("Quit"), i18n("End current game and save the result?"),
+            QMessageBox::Yes | QMessageBox::No
+        );
+        if (res == QMessageBox::No) {
+            event->ignore();
+            return;
+        }
+        force_end_game();
+    }
+    event->accept();
 }
 
 void MainWindow::on_game_over() {

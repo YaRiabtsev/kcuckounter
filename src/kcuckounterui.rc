@@ -8,6 +8,7 @@
 
     <ToolBar name="mainToolBar"><text>Main Toolbar</text>
         <Action name="game_new" />
+        <Action name="game_end" />
         <Action name="game_pause" />
     </ToolBar>
 </gui>

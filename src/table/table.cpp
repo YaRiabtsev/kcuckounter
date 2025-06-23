@@ -243,7 +243,7 @@ void Table::set_renderer(const QString& card_theme) {
     bounds = renderer->boundsOnElement("back");
 }
 
-void Table::create_new_game(KGameDifficultyLevel::StandardLevel level) {
+void Table::create_new_game(const KGameDifficultyLevel::StandardLevel level) {
     countdown->stop();
     launching = true;
     while (!items.empty()) {
@@ -301,6 +301,11 @@ void Table::pause(const bool paused) {
         countdown->stop();
         countdown->start(300);
     }
+}
+
+void Table::force_game_over() {
+    countdown->stop();
+    emit game_over();
 }
 
 void Table::resizeEvent(QResizeEvent* event) {

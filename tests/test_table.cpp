@@ -22,62 +22,20 @@
  * SOFTWARE.
  */
 
-#ifndef CARD_COUNTER_MAINWINDOW_HPP
-#define CARD_COUNTER_MAINWINDOW_HPP
+#include "table/table.hpp"
+#include <QtTest/QtTest>
 
-// KF
-#include <KXmlGuiWindow>
-// Qt
-#include <QLabel>
-#include <QPointer>
-
-class KGameClock;
-
-class KToggleAction;
-
-class Table;
-
-class MainWindow final : public KXmlGuiWindow {
+class TestTable : public QObject {
     Q_OBJECT
-
-public:
-    explicit MainWindow(QWidget* parent = nullptr);
-
-private Q_SLOTS:
-
-    void advance_time(const QString& elapsed_time) const;
-
-    static void load_settings();
-
-    void new_game();
-
-    void force_end_game() const;
-
-    void on_game_over();
-
-    void show_high_scores();
-
-    static void configure_settings();
-
-    void pause_game(bool paused) const;
-
-    void on_score_update(bool inc);
-
-private:
-    void setup_actions();
-
-    void closeEvent(QCloseEvent* event) override;
-
-    Table* table;
-
-    KGameClock* game_clock = nullptr;
-    KToggleAction* action_pause = nullptr;
-
-    QPointer<QLabel> time_label = new QLabel;
-    QPointer<QLabel> score_label = new QLabel;
-
-    QPair<qint32, qint32> score;
-    QAction* action_end_game = nullptr;
+private slots:
+    void forceGameOverSignal();
 };
 
-#endif // CARD_COUNTER_MAINWINDOW_HPP
+void TestTable::forceGameOverSignal() {
+    Table table;
+    QSignalSpy spy(&table, &Table::game_over);
+    table.force_game_over();
+    QCOMPARE(spy.count(), 1);
+}
+
+#include "test_table.moc"

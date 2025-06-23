@@ -167,6 +167,9 @@ void Table::calculate_new_column_count(
 void Table::reorganize_table(
     const qint32 new_column_count, const double new_scale, const bool new_rotated
 ) {
+    // for (TableSlot* item : std::as_const(items)) {
+    //     layout->removeWidget(item);
+    // }
     while (layout->count()) {
         const QLayoutItem* item = layout->takeAt(0);
         item->widget()->hide();
@@ -211,15 +214,17 @@ void Table::pick_up_cards() {
            && (picked.size() < table_slot_count_limit
                || KGameDifficulty::globalLevel() == KGameDifficultyLevel::Custom
            )) {
-        auto it = available.begin();
-        const qint32 idx
-            = QRandomGenerator::global()->bounded(available.size());
-        std::advance(it, idx);
-        if (!picked.contains(*it)) {
-            picked.insert(*it);
-            items[*it]->pick_up_card();
-            available.remove(*it);
+        const int idx = QRandomGenerator::global()
+                     ->bounded(available.size());
+        qint32 key;
+        {
+            auto it = available.begin();
+            std::advance(it, idx);
+            key = *it;
         }
+        picked.insert(key);
+        items[key]->pick_up_card();
+        available.remove(key);
     }
     available.unite(picked);
     // emit deHighlighting

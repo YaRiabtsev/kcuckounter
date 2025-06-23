@@ -25,15 +25,15 @@
 #include "table/table.hpp"
 #include <QtTest/QtTest>
 
-class TestTable : public QObject {
+class TestTable final : public QObject {
     Q_OBJECT
 private slots:
-    void forceGameOverSignal();
+    static void force_game_over_signal();
 };
 
-void TestTable::forceGameOverSignal() {
+void TestTable::force_game_over_signal() {
     Table table;
-    QSignalSpy spy(&table, &Table::game_over);
+    const QSignalSpy spy(&table, &Table::game_over);
     table.force_game_over();
     QCOMPARE(spy.count(), 1);
 }

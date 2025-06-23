@@ -25,25 +25,25 @@
 #include "strategy/strategy.hpp"
 #include <QtTest/QtTest>
 
-class TestStrategy : public QObject {
+class TestStrategy final : public QObject {
     Q_OBJECT
 private slots:
-    void basicProperties();
-    void updateWeight();
+    static void basic_properties();
+    static void update_weight();
 };
 
-void TestStrategy::basicProperties() {
-    QVector<qint32> weights { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 };
-    Strategy s("name", "desc", weights, true);
-    QVERIFY(s.is_custom());
-    QCOMPARE(s.get_name(), QStringLiteral("name"));
-    QCOMPARE(s.get_description(), QStringLiteral("desc"));
-    QCOMPARE(s.get_weights(0), 1);
-    QCOMPARE(s.get_weights(12), 13);
+void TestStrategy::basic_properties() {
+    const QVector weights { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 };
+    const Strategy strategy("name", "desc", weights, true);
+    QVERIFY(strategy.is_custom());
+    QCOMPARE(strategy.get_name(), QStringLiteral("name"));
+    QCOMPARE(strategy.get_description(), QStringLiteral("desc"));
+    QCOMPARE(strategy.get_weights(0), 1);
+    QCOMPARE(strategy.get_weights(12), 13);
 }
 
-void TestStrategy::updateWeight() {
-    QVector<qint32> weights { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+void TestStrategy::update_weight() {
+    const QVector weights { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     Strategy s("n", "d", weights, true);
     QCOMPARE(s.update_weight(0, 1), 1);
     QCOMPARE(s.update_weight(1, 1), 2);

@@ -31,14 +31,14 @@ int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     int status = 0;
 
-    TestStrategy strategyTest;
-    status |= QTest::qExec(&strategyTest, argc, argv);
+    TestStrategy strategy_test;
+    status |= QTest::qExec(&strategy_test, argc, argv);
 
-    TestCards cardsTest;
-    status |= QTest::qExec(&cardsTest, argc, argv);
+    TestCards cards_test;
+    status |= QTest::qExec(&cards_test, argc, argv);
 
-    TestTable tableTest;
-    status |= QTest::qExec(&tableTest, argc, argv);
+    TestTable table_test;
+    status |= QTest::qExec(&table_test, argc, argv);
 
     return status;
 }

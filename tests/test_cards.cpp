@@ -25,34 +25,34 @@
 #include "widgets/cards.hpp"
 #include <QtTest/QtTest>
 
-class TestCards : public QObject {
+class TestCards final : public QObject {
     Q_OBJECT
 private slots:
-    void deckGenerationSize();
-    void cardName();
-    void rankSuitExtraction();
-    void jokerDetection();
+    static void deck_generation_size();
+    static void card_name();
+    static void rank_suit_extraction();
+    static void joker_detection();
 };
 
-void TestCards::deckGenerationSize() {
-    auto deck = Cards::generate_deck(2);
+void TestCards::deck_generation_size() {
+    const auto deck = Cards::generate_deck(2);
     QCOMPARE(deck.size(), 2 * (52 + 2));
 }
 
-void TestCards::cardName() {
-    qint32 card = ((Cards::Spades & 0xff) << 8) | Cards::Ace;
+void TestCards::card_name() {
+    constexpr qint32 card = ((Cards::Spades & 0xff) << 8) | Cards::Ace;
     QCOMPARE(Cards::card_name(card, 1), QStringLiteral("ace_spade"));
 }
 
-void TestCards::rankSuitExtraction() {
-    qint32 card = ((Cards::Hearts & 0xff) << 8) | Cards::Ten;
+void TestCards::rank_suit_extraction() {
+    constexpr qint32 card = ((Cards::Hearts & 0xff) << 8) | Cards::Ten;
     QCOMPARE(Cards::get_suit(card), Cards::Hearts);
     QCOMPARE(Cards::get_rank(card), Cards::Ten);
     QVERIFY(!Cards::is_joker(card));
 }
 
-void TestCards::jokerDetection() {
-    qint32 joker = ((Cards::Red & 0xff) << 8);
+void TestCards::joker_detection() {
+    constexpr qint32 joker = ((Cards::Red & 0xff) << 8);
     QVERIFY(Cards::is_joker(joker));
 }
 

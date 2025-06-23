@@ -9,6 +9,7 @@ RUN pacman -Syu --noconfirm && \
     libkdegames base-devel extra-cmake-modules \
     qt6-svg \
     && pacman -Scc --noconfirm
+#    xcb-util xcb-util-image xcb-util-keysyms xcb-util-renderutil xcb-util-wm \
 
 WORKDIR /usr/src/app
 

@@ -46,6 +46,8 @@ class Strategy;
 
 class QComboBox;
 
+class QPropertyAnimation;
+
 /**
  * @brief Interactive widget displaying a deck of cards.
  *
@@ -54,7 +56,8 @@ class QComboBox;
  */
 class TableSlot final : public Cards {
     Q_OBJECT
-
+    Q_PROPERTY(qreal highlight_opacity READ get_highlight_opacity WRITE
+                   set_highlight_opacity)
 public:
     explicit TableSlot(
         StrategyInfo* strategies, QSvgRenderer* renderer,
@@ -70,6 +73,9 @@ public:
      * @brief Draw the next card and update weights.
      */
     void pick_up_card();
+
+protected:
+    void paintEvent(QPaintEvent* event) override;
 
 signals:
 
@@ -107,6 +113,14 @@ public Q_SLOTS:
 
 private:
     void user_quizzing();
+
+    qreal get_highlight_opacity() const;
+    void set_highlight_opacity(qreal value);
+
+    void start_highlight();
+
+    qreal highlight_opacity;
+    QPropertyAnimation* highlight_anim;
 
     QList<qint32> cards;
     Strategy* strategy {};

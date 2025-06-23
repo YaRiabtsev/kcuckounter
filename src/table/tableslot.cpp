@@ -27,6 +27,7 @@
 #include <QComboBox>
 #include <QFormLayout>
 #include <QPainter>
+#include <QPropertyAnimation>
 #include <QPushButton>
 #include <QSpinBox>
 #include <QSvgRenderer>
@@ -46,7 +47,10 @@ TableSlot::TableSlot(
     QWidget* parent
 )
     : Cards(renderer, parent)
+    , highlight_opacity(0.0)
     , strategies(strategies) {
+    highlight_anim = new QPropertyAnimation(this, "highlight_opacity", this);
+    highlight_anim->setDuration(500);
 
     // QLabels:
     message_label = new CCLabel(i18n("TableSlot Weight: 0"));
@@ -245,7 +249,7 @@ void TableSlot::pick_up_card() {
             = strategy->update_weight(current_weight, get_current_rank());
         weight_label->setText(i18n("weight: %1", current_weight));
     }
-    // add highlighting
+    start_highlight();
 }
 
 void TableSlot::user_quizzing() {
@@ -298,4 +302,34 @@ void TableSlot::on_strategy_changed(const int index) {
         strategy = strategies->get_strategy_by_id(index);
         strategy_hint_label->setText(strategy->get_name());
     }
+}
+
+void TableSlot::paintEvent(QPaintEvent* event) {
+    Cards::paintEvent(event);
+
+    QPainter painter(this);
+    QColor highlight = Qt::green;
+    QColor base = Qt::gray;
+    QColor mix(
+        base.red() + (highlight.red() - base.red()) * highlight_opacity,
+        base.green() + (highlight.green() - base.green()) * highlight_opacity,
+        base.blue() + (highlight.blue() - base.blue()) * highlight_opacity
+    );
+    painter.setPen(QPen(mix, 6));
+    painter.drawRoundedRect(rect().adjusted(3, 3, -3, -3), 25, 25);
+}
+
+void TableSlot::set_highlight_opacity(const qreal value) {
+    highlight_opacity = value;
+    update();
+}
+
+qreal TableSlot::get_highlight_opacity() const { return highlight_opacity; }
+
+void TableSlot::start_highlight() {
+    highlight_anim->stop();
+    set_highlight_opacity(1.0);
+    highlight_anim->setStartValue(1.0);
+    highlight_anim->setEndValue(0.0);
+    highlight_anim->start();
 }

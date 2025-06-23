@@ -108,7 +108,7 @@ private:
     /**
      * @brief Apply new layout parameters to all slots.
      */
-    void reorganize_table(qint32 new_column_count, double new_scale);
+    void reorganize_table(qint32 new_column_count, double new_scale, bool new_rotated = false);
 
     QGridLayout* layout;
     QSvgRenderer* renderer {};
@@ -120,6 +120,7 @@ private:
     qint32 column_count = -1;
     qint32 table_slot_count_limit {};
     qreal scale = -1;
+    bool rotated = false;
 
     QVector<int> swap_target;
     QVector<TableSlot*> items;

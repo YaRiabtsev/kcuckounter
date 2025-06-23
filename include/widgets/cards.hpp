@@ -152,11 +152,21 @@ public:
      */
     [[nodiscard]] static qint32 get_suit(qint32 id) noexcept;
 
+    /**
+ * @brief Rotate the SVG by 90 degrees.
+ *
+ * When enabled the card image is painted in landscape
+ * orientation without changing the widget geometry.
+ */
+    void set_rotated(bool rotated);
+
+
 private:
     QString svg_name;
     qint32 current_card_id;
 
     QSvgRenderer* renderer;
+    bool rotated_svg = false;
 };
 
 #endif // CARD_COUNTER_CARDS_HPP

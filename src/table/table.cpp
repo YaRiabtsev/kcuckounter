@@ -55,47 +55,48 @@ void Table::on_table_slot_activated() {
 }
 
 void Table::add_new_table_slot(const bool is_active) {
-    auto* tableSlot = new TableSlot(strategy_info, renderer, is_active, this);
+    auto* table_slot = new TableSlot(strategy_info, renderer, is_active, this);
     if (is_active) {
         available.insert(items.size());
     }
     connect(
-        tableSlot, &TableSlot::table_slot_activated, this,
+        table_slot, &TableSlot::table_slot_activated, this,
         &Table::on_table_slot_activated
     );
     connect(
-        tableSlot, &TableSlot::table_slot_finished, this,
+        table_slot, &TableSlot::table_slot_finished, this,
         &Table::on_table_slot_finished
     );
     connect(
-        tableSlot, &TableSlot::table_slot_removed, this,
+        table_slot, &TableSlot::table_slot_removed, this,
         &Table::on_table_slot_removed
     );
     connect(
-        tableSlot, &TableSlot::table_slot_reshuffled, this,
+        table_slot, &TableSlot::table_slot_reshuffled, this,
         &Table::on_table_slot_reshuffled
     );
-    connect(tableSlot, &TableSlot::user_quizzed, this, &Table::on_user_quizzed);
+    connect(table_slot, &TableSlot::user_quizzed, this, &Table::on_user_quizzed);
     connect(
-        tableSlot, &TableSlot::user_answered, this, &Table::on_user_answered
+        table_slot, &TableSlot::user_answered, this, &Table::on_user_answered
     );
     connect(
-        tableSlot, &TableSlot::swap_target_selected, this,
+        table_slot, &TableSlot::swap_target_selected, this,
         &Table::on_swap_target_selected
     );
     connect(
-        tableSlot, &TableSlot::strategy_info_assist, this,
+        table_slot, &TableSlot::strategy_info_assist, this,
         &Table::on_strategy_info_assist
     );
-    connect(this, &Table::game_paused, tableSlot, &TableSlot::on_game_paused);
+    connect(this, &Table::game_paused, table_slot, &TableSlot::on_game_paused);
     connect(
-        this, &Table::table_slot_resized, tableSlot,
-        [tableSlot](const QSize newFixedSize) {
-            tableSlot->setFixedSize(newFixedSize);
+        this, &Table::table_slot_resized, table_slot,
+        [table_slot](const QSize newFixedSize) {
+            table_slot->setFixedSize(newFixedSize);
+            table_slot->set_rotated(newFixedSize.width() > newFixedSize.height());
         }
     );
-    connect(this, &Table::can_remove, tableSlot, &TableSlot::on_can_remove);
-    items.push_back(tableSlot);
+    connect(this, &Table::can_remove, table_slot, &TableSlot::on_can_remove);
+    items.push_back(table_slot);
 }
 
 void Table::on_table_slot_finished() {
@@ -139,26 +140,32 @@ void Table::on_user_answered(const bool correct) {
 void Table::calculate_new_column_count(
     const QSizeF& table_size, const QSizeF& aspect_ratio, int item_count
 ) {
-    int new_column_count = 1;
-    double new_scale = 0;
-    for (int testColumnCount = 1; testColumnCount <= item_count;
-         testColumnCount++) {
-        const double test_scale = 0.9
-            * qMin(table_size.width()
-                       / (testColumnCount * aspect_ratio.width()),
-                   table_size.height()
-                       / (qCeil(item_count * 1.0 / testColumnCount)
-                          * aspect_ratio.height()));
-        if (test_scale > new_scale) {
-            new_scale = test_scale;
-            new_column_count = testColumnCount;
+    int best_column_count = 1;
+    double best_scale = 0.0;
+    bool rotated = false;
+
+    auto test_orientation = [&](const QSizeF& size, const bool swapped) {
+        for (int column_count = 1; column_count <= item_count; column_count++) {
+            const int row_count
+                = qCeil(static_cast<double>(item_count) / column_count);
+            const double scale = 0.9
+                * qMin(size.width() / (column_count * aspect_ratio.width()),
+                       size.height() / (row_count * aspect_ratio.height()));
+            if (scale > best_scale) {
+                best_scale = scale;
+                best_column_count = column_count;
+                rotated = swapped;
+            }
         }
-    }
-    reorganize_table(new_column_count, new_scale);
+    };
+
+    test_orientation(table_size, false);
+    test_orientation(QSizeF(table_size.height(), table_size.width()), true);
+    reorganize_table(best_column_count, best_scale, rotated);
 }
 
 void Table::reorganize_table(
-    const qint32 new_column_count, const double new_scale
+    const qint32 new_column_count, const double new_scale, const bool new_rotated
 ) {
     while (layout->count()) {
         const QLayoutItem* item = layout->takeAt(0);
@@ -167,7 +174,8 @@ void Table::reorganize_table(
     }
 
     const QSizeF new_fixed_size(
-        bounds.width() * new_scale, bounds.height() * new_scale
+    new_rotated ? bounds.height() * new_scale : bounds.width() * new_scale,
+    new_rotated ? bounds.width() * new_scale : bounds.height() * new_scale
     );
     emit table_slot_resized(new_fixed_size.toSize());
 
@@ -179,6 +187,7 @@ void Table::reorganize_table(
     }
     column_count = new_column_count;
     scale = new_scale;
+    rotated = new_rotated;
 }
 
 void Table::on_swap_target_selected() {
@@ -187,7 +196,7 @@ void Table::on_swap_target_selected() {
         items.swapItemsAt(swap_target[0], swap_target[1]);
         swap_target.clear();
     }
-    reorganize_table(column_count, scale);
+    reorganize_table(column_count, scale, rotated);
 }
 
 void Table::pick_up_cards() {
@@ -218,10 +227,12 @@ void Table::pick_up_cards() {
 }
 
 void Table::set_renderer(const QString& card_theme) {
-    renderer = new QSvgRenderer(QStandardPaths::locate(
-        QStandardPaths::GenericDataLocation,
-        QString("carddecks/svg-%1/%1.svgz").arg(card_theme)
-    ));
+    renderer = new QSvgRenderer(
+        QStandardPaths::locate(
+            QStandardPaths::GenericDataLocation,
+            QString("carddecks/svg-%1/%1.svgz").arg(card_theme)
+        )
+    );
     bounds = renderer->boundsOnElement("back");
 }
 

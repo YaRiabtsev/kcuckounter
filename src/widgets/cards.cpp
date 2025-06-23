@@ -146,7 +146,18 @@ void Cards::paintEvent(QPaintEvent* event) {
 
     if (renderer->isValid() && renderer->elementExists(svg_name)) {
         QPainter painter(this);
-        renderer->render(&painter, svg_name);
+        if (rotated_svg) {
+            painter.translate(width() / 2.0, height() / 2.0);
+            painter.rotate(90);
+            painter.translate(-height() / 2.0, -width() / 2.0);
+            renderer->render(
+                &painter, svg_name,
+                QRectF(0, 0, static_cast<qreal>(height()),
+                       static_cast<qreal>(width()))
+            );
+        } else {
+            renderer->render(&painter, svg_name, rect());
+        }
         //        qDebug()<<m_renderer->aspectRatioMode();
         //        if (false) {
         //            painter.setPen(QPen(Qt::red, 5));
@@ -180,6 +191,12 @@ qint32 Cards::get_current_rank() const noexcept {
     return get_rank(current_card_id);
 }
 
+void Cards::set_rotated(const bool rotated) {
+    if (rotated_svg != rotated) {
+        rotated_svg = rotated;
+        update();
+    }
+}
 //
 // void Cards::onResized(QSize newFixedSize) {
 //    if (size() != newFixedSize) {

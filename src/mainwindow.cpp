@@ -26,6 +26,7 @@
 #include <QCloseEvent>
 #include <QMessageBox>
 #include <QStatusBar>
+#include <QToolBar>
 // KDEGames
 #include <KGameClock>
 #include <KGameHighScoreDialog>
@@ -47,10 +48,17 @@ MainWindow::MainWindow(QWidget* parent)
     score_label->setText(i18n("Score: 0/0"));
     time_label->setText(i18n("Time: 00:00"));
 
+    speed_slider->setRange(100, 1000);
+    speed_slider->setValue(300);
+    speed_slider->setToolTip(i18n("Card pickup interval (ms)"));
+
     statusBar()->insertPermanentWidget(0, score_label);
     statusBar()->insertPermanentWidget(1, time_label);
+    statusBar()->insertPermanentWidget(2, speed_slider);
 
     table = new Table;
+    connect(speed_slider, &QSlider::valueChanged, table, &Table::set_speed);
+    table->set_speed(speed_slider->value());
     connect(table, &Table::score_update, this, &MainWindow::on_score_update);
     connect(table, &Table::game_over, this, &MainWindow::on_game_over);
 
@@ -71,29 +79,30 @@ void MainWindow::setup_actions() {
     KStandardAction::preferences(
         this, &MainWindow::configure_settings, actionCollection()
     );
+
     action_pause = KGameStandardAction::pause(
         this, &MainWindow::pause_game, actionCollection()
     );
-    action_end_game = actionCollection()->addAction(QStringLiteral("game_end"));
-    action_end_game->setText(i18n("End Game"));
-    connect(
-        action_end_game, &QAction::triggered, this, &MainWindow::force_end_game
-    );
+    action_end_game = KGameStandardAction::end(
+       this, &MainWindow::force_end_game, actionCollection());
 
-    KGameDifficulty::global()->addStandardLevelRange(
-        KGameDifficultyLevel::Easy, KGameDifficultyLevel::Hard,
-        KGameDifficultyLevel::Easy
-    );
-    KGameDifficulty::global()->addLevel(new KGameDifficultyLevel(
-        1000, QByteArray("Nightmare"), i18n("Nightmare")
-    ));
+    auto *diff = KGameDifficulty::global();
+    diff->addStandardLevelRange(
+        KGameDifficultyLevel::Easy,
+        KGameDifficultyLevel::Hard,
+        KGameDifficultyLevel::Easy);
+    diff->addLevel(new KGameDifficultyLevel(
+        1000, QByteArray("Nightmare"), i18n("Nightmare")));
     KGameDifficultyGUI::init(this);
-    connect(
-        KGameDifficulty::global(), &KGameDifficulty::currentLevelChanged, this,
-        &MainWindow::new_game
-    );
+    connect(diff, &KGameDifficulty::currentLevelChanged,
+            this, &MainWindow::new_game);
 
-    setupGUI(Default, "kcuckounterui.rc");
+    setupGUI(Default);
+
+    auto* mainToolBar = addToolBar(i18n("Main Toolbar"));
+    mainToolBar->addAction(actionCollection()->action(QStringLiteral("game_new")));
+    mainToolBar->addAction(action_end_game);
+    mainToolBar->addAction(action_pause);
 }
 
 void MainWindow::new_game() {

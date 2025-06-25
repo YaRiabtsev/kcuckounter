@@ -25,6 +25,7 @@
 // Qt
 #include <QBoxLayout>
 #include <QPushButton>
+#include <QPropertyAnimation>
 // own
 #include "widgets/carousel.hpp"
 
@@ -33,7 +34,7 @@ Carousel::Carousel(const QSizeF aspect_ratio, QWidget* parent)
     , ratio(aspect_ratio) {
 
     auto* box_layout = new QHBoxLayout(this);
-    auto* carousel_box = new QWidget;
+    carousel_box = new QWidget;
     carousel_box->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     carousel = new QHBoxLayout();
     carousel_box->setLayout(carousel);
@@ -41,18 +42,12 @@ Carousel::Carousel(const QSizeF aspect_ratio, QWidget* parent)
     auto* back = new QPushButton();
     back->setIcon(QIcon::fromTheme("draw-arrow-back"));
     back->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Minimum);
-    connect(back, &QPushButton::clicked, [this] {
-        idx = (idx + widgets.size() - 1) % widgets.size();
-        update_layout();
-    });
+    connect(back, &QPushButton::clicked, [this] { slide(-1); });
 
     auto* next = new QPushButton();
     next->setIcon(QIcon::fromTheme("draw-arrow-forward"));
     next->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Minimum);
-    connect(next, &QPushButton::clicked, [this] {
-        idx = (idx + 1) % widgets.size();
-        update_layout();
-    });
+    connect(next, &QPushButton::clicked, [this] { slide(1); });
 
     box_layout->addWidget(back);
     box_layout->addStretch();
@@ -85,10 +80,12 @@ void Carousel::update_props(const QSize size) {
     const auto item_size
         = QSizeF(size.height() * ratio.width() / ratio.height(), size.height());
     column_count = qMin(
-        widgets.size(),
+        static_cast<qint32>(widgets.size()),
         static_cast<qint32>(0.95 * size.width() / item_size.width())
     );
-    update_layout(0.9 * size.height() / ratio.height());
+    const double scale = 0.9 * size.height() / ratio.height();
+    item_width = ratio.width() * scale;
+    update_layout(scale);
 }
 
 void Carousel::update_layout(const double new_scale) {
@@ -103,6 +100,7 @@ void Carousel::update_layout(const double new_scale) {
             ratio.width() * new_scale, ratio.height() * new_scale
         );
         emit item_resized(new_fixed_size.toSize());
+        item_width = new_fixed_size.width();
     }
 
     for (qint32 i = 0; i < column_count; i++) {
@@ -110,4 +108,29 @@ void Carousel::update_layout(const double new_scale) {
         carousel->addWidget(item);
         item->show();
     }
+}
+
+void Carousel::slide(const qint32 direction) {
+    if (animation || widgets.isEmpty()) {
+        return;
+    }
+
+    const QPoint start_pos = carousel_box->pos();
+    const QPoint end_pos = start_pos - QPoint(static_cast<qint32>(direction * item_width), 0);
+
+    animation = new QPropertyAnimation(carousel_box, "pos", this);
+    animation->setDuration(250);
+    animation->setEasingCurve(QEasingCurve::OutCubic);
+    animation->setStartValue(start_pos);
+    animation->setEndValue(end_pos);
+
+    connect(animation, &QPropertyAnimation::finished, this, [this, direction, start_pos] {
+        carousel_box->move(start_pos);
+            const auto widgets_size = static_cast<qint32>(widgets.size());
+        idx = (idx + direction + widgets_size) % widgets_size;
+        update_layout();
+        animation->deleteLater();
+        animation = nullptr;
+    });
+    animation->start();
 }

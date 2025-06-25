@@ -150,8 +150,7 @@ StrategyInfo::StrategyInfo(
         show_strategy_by_name(list_widget->currentItem()->text());
     });
     connect(
-        search_box, &QLineEdit::textChanged, this,
-        [this](const QString& text) {
+        search_box, &QLineEdit::textChanged, this, [this](const QString& text) {
             for (int i = 0; i < list_widget->count(); i++) {
                 auto* item = list_widget->item(i);
                 const bool matches

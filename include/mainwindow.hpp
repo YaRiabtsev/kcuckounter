@@ -30,6 +30,7 @@
 // Qt
 #include <QLabel>
 #include <QPointer>
+#include <QSlider>
 
 class KGameClock;
 
@@ -75,6 +76,7 @@ private:
 
     QPointer<QLabel> time_label = new QLabel;
     QPointer<QLabel> score_label = new QLabel;
+    QPointer<QSlider> speed_slider = new QSlider(Qt::Horizontal);
 
     QPair<qint32, qint32> score;
     QAction* action_end_game = nullptr;

@@ -56,8 +56,10 @@ class QPropertyAnimation;
  */
 class TableSlot final : public Cards {
     Q_OBJECT
-    Q_PROPERTY(qreal highlight_opacity READ get_highlight_opacity WRITE
-                   set_highlight_opacity)
+    Q_PROPERTY(
+        float highlight_opacity READ get_highlight_opacity WRITE
+            set_highlight_opacity
+    )
 public:
     explicit TableSlot(
         StrategyInfo* strategies, QSvgRenderer* renderer,
@@ -114,12 +116,12 @@ public Q_SLOTS:
 private:
     void user_quizzing();
 
-    qreal get_highlight_opacity() const;
-    void set_highlight_opacity(qreal value);
+    float get_highlight_opacity() const;
+    void set_highlight_opacity(float value);
 
     void start_highlight();
 
-    qreal highlight_opacity;
+    float highlight_opacity;
     QPropertyAnimation* highlight_anim;
 
     QList<qint32> cards;

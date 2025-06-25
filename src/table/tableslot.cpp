@@ -310,21 +310,22 @@ void TableSlot::paintEvent(QPaintEvent* event) {
     QPainter painter(this);
     QColor highlight = Qt::green;
     QColor base = Qt::gray;
-    QColor mix(
-        base.red() + (highlight.red() - base.red()) * highlight_opacity,
-        base.green() + (highlight.green() - base.green()) * highlight_opacity,
-        base.blue() + (highlight.blue() - base.blue()) * highlight_opacity
+    QColor mix = QColor::fromRgbF(
+        base.redF() + (highlight.redF() - base.redF()) * highlight_opacity,
+        base.greenF()
+            + (highlight.greenF() - base.greenF()) * highlight_opacity,
+        base.blueF() + (highlight.blueF() - base.blueF()) * highlight_opacity
     );
     painter.setPen(QPen(mix, 6));
     painter.drawRoundedRect(rect().adjusted(3, 3, -3, -3), 25, 25);
 }
 
-void TableSlot::set_highlight_opacity(const qreal value) {
+void TableSlot::set_highlight_opacity(const float value) {
     highlight_opacity = value;
     update();
 }
 
-qreal TableSlot::get_highlight_opacity() const { return highlight_opacity; }
+float TableSlot::get_highlight_opacity() const { return highlight_opacity; }
 
 void TableSlot::start_highlight() {
     highlight_anim->stop();

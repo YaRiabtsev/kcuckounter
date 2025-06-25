@@ -33,7 +33,8 @@ QList<qint32> Cards::shuffle_cards(
     const qint32 deck_count, const qint32 shuffle_coefficient
 ) {
     QList<qint32> deck = generate_deck(deck_count);
-    const qint32 threshold = deck.size() / (deck_count * shuffle_coefficient);
+    const qint32 threshold
+        = static_cast<qint32>(deck.size()) / (deck_count * shuffle_coefficient);
     bool flag;
 
     do {

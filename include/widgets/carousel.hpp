@@ -27,6 +27,7 @@
 
 // Qt
 #include <QWidget>
+#include <QPropertyAnimation>
 
 class QHBoxLayout;
 
@@ -58,8 +59,12 @@ private:
      * @brief Rearrange visible items according to current index.
      */
     void update_layout(double new_scale = -1);
+    void slide(qint32 direction);
 
     QHBoxLayout* carousel;
+    QWidget* carousel_box;
+    QPropertyAnimation* animation = nullptr;
+    qreal item_width = 0.0;
     QVector<QWidget*> widgets;
     QSizeF ratio;
     qint32 column_count = 0;

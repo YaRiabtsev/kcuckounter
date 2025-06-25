@@ -50,6 +50,8 @@ public:
 
     void pause(bool paused);
 
+public Q_SLOTS:
+    void set_speed(int interval_ms);
     void force_game_over();
 
 signals:

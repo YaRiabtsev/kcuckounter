@@ -45,19 +45,24 @@ Table::Table(QWidget* parent)
     layout = new QGridLayout();
     setLayout(layout);
 }
-
+void Table::set_speed(const int interval_ms)
+{
+    countdown->setInterval(interval_ms);
+}
 void Table::on_table_slot_activated() {
     const auto* table_slot = qobject_cast<TableSlot*>(sender());
     available.insert(layout->indexOf(table_slot));
     add_new_table_slot();
-    calculate_new_column_count(size(), bounds.size(), items.count());
+    calculate_new_column_count(
+        size(), bounds.size(), static_cast<qint32>(items.count())
+    );
     emit can_remove(table_slot_count_limit < available.size());
 }
 
 void Table::add_new_table_slot(const bool is_active) {
     auto* table_slot = new TableSlot(strategy_info, renderer, is_active, this);
     if (is_active) {
-        available.insert(items.size());
+        available.insert(static_cast<qint32>(items.size()));
     }
     connect(
         table_slot, &TableSlot::table_slot_activated, this,
@@ -114,7 +119,9 @@ void Table::on_table_slot_removed() {
     items.remove(layout->indexOf(table_slot));
     available.remove(layout->indexOf(table_slot));
     jokers.remove(layout->indexOf(table_slot));
-    calculate_new_column_count(size(), bounds.size(), items.count());
+    calculate_new_column_count(
+        size(), bounds.size(), static_cast<qint32>(items.count())
+    );
     emit can_remove(available.size() > table_slot_count_limit);
 }
 
@@ -136,7 +143,7 @@ void Table::on_user_answered(const bool correct) {
     available.insert(layout->indexOf(table_slot));
     if (jokers.empty()) {
         countdown->stop();
-        countdown->start(300);
+        countdown->start(countdown->interval());
     }
     emit score_update(correct);
 }
@@ -187,7 +194,7 @@ void Table::reorganize_table(
     );
     emit table_slot_resized(new_fixed_size.toSize());
 
-    const qint32 items_count = items.count();
+    const qint32 items_count = static_cast<qint32>(items.count());
     for (qint32 i = 0; i < items_count; i++) {
         TableSlot* item = items[i];
         layout->addWidget(item, i / new_column_count, i % new_column_count);
@@ -217,9 +224,11 @@ void Table::pick_up_cards() {
     QSet<qint32> picked;
     while (!available.empty()
            && (picked.size() < table_slot_count_limit
-               || KGameDifficulty::globalLevel() == KGameDifficultyLevel::Custom
-           )) {
-        const int idx = QRandomGenerator::global()->bounded(available.size());
+               || KGameDifficulty::globalLevel()
+                   == KGameDifficultyLevel::Custom)) {
+        const int idx = QRandomGenerator::global()->bounded(
+            static_cast<qint32>(available.size())
+        );
         qint32 key;
         {
             auto it = available.begin();
@@ -236,10 +245,12 @@ void Table::pick_up_cards() {
 }
 
 void Table::set_renderer(const QString& card_theme) {
-    renderer = new QSvgRenderer(QStandardPaths::locate(
-        QStandardPaths::GenericDataLocation,
-        QString("carddecks/svg-%1/%1.svgz").arg(card_theme)
-    ));
+    renderer = new QSvgRenderer(
+        QStandardPaths::locate(
+            QStandardPaths::GenericDataLocation,
+            QString("carddecks/svg-%1/%1.svgz").arg(card_theme)
+        )
+    );
     bounds = renderer->boundsOnElement("back");
 }
 
@@ -282,7 +293,9 @@ void Table::create_new_game(const KGameDifficultyLevel::StandardLevel level) {
         add_new_table_slot(true);
     }
     add_new_table_slot();
-    calculate_new_column_count(size(), bounds.size(), items.count());
+    calculate_new_column_count(
+        size(), bounds.size(), static_cast<qint32>(items.count())
+    );
 }
 
 void Table::pause(const bool paused) {
@@ -299,7 +312,7 @@ void Table::pause(const bool paused) {
         countdown->stop();
     } else if (jokers.empty()) {
         countdown->stop();
-        countdown->start(300);
+        countdown->start(countdown->interval());
     }
 }
 
@@ -311,7 +324,9 @@ void Table::force_game_over() {
 void Table::resizeEvent(QResizeEvent* event) {
     QWidget::resizeEvent(event);
 
-    calculate_new_column_count(size(), bounds.size(), items.count());
+    calculate_new_column_count(
+        size(), bounds.size(), static_cast<qint32>(items.count())
+    );
 }
 
 void Table::on_strategy_info_assist() const { strategy_info->show(); }

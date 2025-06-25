@@ -6,6 +6,7 @@
 [//]: # ([![Checks]&#40;https://github.com/YaRiabtsev/kcuckounter/actions/workflows/tests.yml/badge.svg&#41;]&#40;https://github.com/YaRiabtsev/kcuckounter/actions/workflows/tests.yml&#41;)
 [//]: # ([![Docs & Coverage]&#40;https://github.com/YaRiabtsev/kcuckounter/actions/workflows/html.yml/badge.svg&#41;]&#40;https://github.com/YaRiabtsev/kcuckounter/actions/workflows/html.yml&#41;)
 [//]: # ([![codecov]&#40;https://codecov.io/gh/YaRiabtsev/kcuckounter/graph/badge.svg?token=MCNEJFWMDU&#41;]&#40;https://codecov.io/gh/YaRiabtsev/kcuckounter&#41;)
+
 [![license](https://img.shields.io/github/license/YaRiabtsev/kcuckounter?color=e6e6e6)](https://github.com/YaRiabtsev/kcuckounter/blob/master/license)
 
 > Just play poker in Indian Casinos and stay single and live where and how he wants to, if people would let him,

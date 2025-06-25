@@ -17,7 +17,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         -Wpedantic
         -Wcast-align
         -Wcast-qual
-#        -Wconversion
+        -Wconversion
         -Wctor-dtor-privacy
         -Wenum-compare
         -Wfloat-equal
@@ -88,7 +88,8 @@ set(kcuckounter_SOURCES
 
 add_library(kcuckounter_lib STATIC
         ${kcuckounter_HEADERS}
-        ${kcuckounter_SOURCES})
+        ${kcuckounter_SOURCES}
+        ${kcuckounter_resources})
 
 
 target_link_libraries(kcuckounter_lib
@@ -117,7 +118,6 @@ option(BUILD_TESTS "Build unit tests" ON)
 option(COVERAGE "Enable coverage reporting" OFF)
 
 install(TARGETS kcuckounter ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
-install(FILES src/kcuckounterui.rc DESTINATION ${KDE_INSTALL_KXMLGUI6DIR}/kcuckounter)
 
 if (BUILD_TESTS)
     enable_testing()

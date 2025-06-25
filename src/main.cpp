@@ -40,9 +40,11 @@ int main(int argc, char* argv[]) {
     KAboutData about_data(
         QStringLiteral("kcuckounter"), i18n("kcuckounter"),
         QStringLiteral("1.0"),
-        i18n("A tool for improving arithmetic skills and memory retention "
-             "through counting cards in different table-slots with different "
-             "strategies. "),
+        i18n(
+            "A tool for improving arithmetic skills and memory retention "
+            "through counting cards in different table-slots with different "
+            "strategies. "
+        ),
         KAboutLicense::MIT, i18n("(c) 2025, Yaroslav Riabtsev"), QString(),
         QStringLiteral("https://github.com/YaRiabtsev/kcuckounter"),
         QStringLiteral("yaroslav.riabtsev@rwth-aachen.de")

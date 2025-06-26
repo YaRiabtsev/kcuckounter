@@ -11,6 +11,7 @@ option(COVERAGE "Enable coverage reporting" OFF)
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_options(
         -Og -g -fno-omit-frame-pointer
+#        -fsanitize=address,undefined,leak
         -Werror
         -Wall
         -Wextra
@@ -28,6 +29,9 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         -Wsign-conversion
         -Wsign-promo
     )
+#    add_link_options(
+#            -fsanitize=address,undefined,leak
+#    )
 elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -mtune=native -DNDEBUG")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s")
@@ -68,6 +72,7 @@ set(kcuckounter_HEADERS
         include/mainwindow.hpp
         include/table/table.hpp
         include/table/tableslot.hpp
+        include/settings.hpp
         include/strategy/strategyinfo.hpp
         include/strategy/strategy.hpp
         include/widgets/cards.hpp
@@ -79,6 +84,7 @@ set(kcuckounter_SOURCES
         src/mainwindow.cpp
         src/table/table.cpp
         src/table/tableslot.cpp
+        src/settings.cpp
         src/strategy/strategyinfo.cpp
         src/strategy/strategy.cpp
         src/widgets/carousel.cpp
@@ -124,13 +130,23 @@ if (BUILD_TESTS)
 
     qt_add_executable(unit_tests
             tests/main.cpp
-            tests/test_cards.cpp tests/test_strategy.cpp tests/test_table.cpp
+            tests/test_cards.cpp tests/test_strategy.cpp tests/test_table.cpp tests/test_mainwindow.cpp
 )
     set_source_files_properties(
-            tests/test_cards.cpp tests/test_strategy.cpp tests/test_table.cpp
+            tests/test_cards.cpp tests/test_strategy.cpp tests/test_table.cpp tests/test_mainwindow.cpp
             PROPERTIES HEADER_FILE_ONLY ON)
     target_link_libraries(unit_tests PRIVATE kcuckounter_lib Qt6::Test)
     add_test(NAME unit_tests COMMAND unit_tests)
+#    include(CTest)
+#    set_tests_properties(unit_tests PROPERTIES ENVIRONMENT "ASAN_OPTIONS=detect_leaks=1")
+#
+#    find_program(VALGRIND_EXECUTABLE valgrind)
+#    if (VALGRIND_EXECUTABLE)
+#        add_custom_target(memcheck
+#                COMMAND ${VALGRIND_EXECUTABLE} --leak-check=full --track-origins=yes --error-exitcode=1 $<TARGET_FILE:unit_tests>
+#                DEPENDS unit_tests
+#        )
+#    endif ()
 
     if (COVERAGE)
         message(STATUS "Coverage: ON, compiler is ${CMAKE_CXX_COMPILER_ID}")

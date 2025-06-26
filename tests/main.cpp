@@ -23,12 +23,20 @@
  */
 
 #include "test_cards.cpp"
+// #include "test_mainwindow.cpp"
 #include "test_strategy.cpp"
 #include "test_table.cpp"
+
+#include <KLocalizedString>
+
 #include <QApplication>
+#include <QStandardPaths>
 
 int main(int argc, char* argv[]) {
+    QStandardPaths::setTestModeEnabled(true);
     QApplication app(argc, argv);
+    app.setApplicationName(QStringLiteral("kcuckounter"));
+    KLocalizedString::setApplicationDomain("kcuckounter");
     int status = 0;
 
     TestStrategy strategy_test;
@@ -39,6 +47,9 @@ int main(int argc, char* argv[]) {
 
     TestTable table_test;
     status |= QTest::qExec(&table_test, argc, argv);
+
+    // TestMainWindow test_mainwindow;
+    // status |= QTest::qExec(&test_mainwindow, argc, argv);
 
     return status;
 }

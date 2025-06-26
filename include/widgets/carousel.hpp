@@ -26,8 +26,8 @@
 #define CARD_COUNTER_CAROUSEL_HPP
 
 // Qt
-#include <QWidget>
 #include <QPropertyAnimation>
+#include <QWidget>
 
 class QHBoxLayout;
 

@@ -48,7 +48,7 @@ private Q_SLOTS:
 
     void advance_time(const QString& elapsed_time) const;
 
-    static void load_settings();
+    void load_settings() const;
 
     void new_game();
 
@@ -58,7 +58,7 @@ private Q_SLOTS:
 
     void show_high_scores();
 
-    static void configure_settings();
+    void configure_settings();
 
     void pause_game(bool paused) const;
 

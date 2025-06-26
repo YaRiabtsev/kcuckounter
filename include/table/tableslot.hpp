@@ -113,6 +113,11 @@ public Q_SLOTS:
 
     void activate(int value);
 
+    /**
+     * @brief Replace the strategies object used by this slot.
+     */
+    void set_strategies(StrategyInfo* info);
+
 private:
     void user_quizzing();
 

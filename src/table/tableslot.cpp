@@ -34,6 +34,7 @@
 // KF
 #include <KLocalizedString>
 // own
+#include "settings.hpp"
 #include "strategy/strategy.hpp"
 #include "strategy/strategyinfo.hpp"
 #include "table/tableslot.hpp"
@@ -70,20 +71,19 @@ TableSlot::TableSlot(
         strategy_box, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
         &TableSlot::on_strategy_changed
     );
-    auto* indexing = new QCheckBox();
+    Settings& opts = Settings::instance();
+    index_label->setVisible(opts.indexing());
+    strategy_hint_label->setVisible(opts.strategy_hint());
+    weight_label->setVisible(opts.training());
     connect(
-        indexing, &QCheckBox::checkStateChanged, index_label,
+        &opts, &Settings::indexing_changed, index_label, &CCLabel::setVisible
+    );
+    connect(
+        &opts, &Settings::strategy_hint_changed, strategy_hint_label,
         &CCLabel::setVisible
     );
-    auto* strategy_hint = new QCheckBox();
     connect(
-        strategy_hint, &QCheckBox::checkStateChanged, strategy_hint_label,
-        &CCLabel::setVisible
-    );
-    auto* training = new QCheckBox();
-    connect(
-        training, &QCheckBox::checkStateChanged, weight_label,
-        &CCLabel::setVisible
+        &opts, &Settings::training_changed, weight_label, &CCLabel::setVisible
     );
 
     // QFrames:
@@ -177,9 +177,6 @@ TableSlot::TableSlot(
 
     settings->addRow(tr("&Number of Card Decks:"), deck_count);
     settings->addRow(tr("Type of Strategy:"), strategy_layout);
-    settings->addRow(indexing, new QLabel("Use card indexing"));
-    settings->addRow(strategy_hint, new QLabel("Add name of strategy"));
-    settings->addRow(training, new QLabel("Is training"));
 
     control_layout->addWidget(close_button);
     control_layout->addWidget(refresh_button);
@@ -287,6 +284,26 @@ void TableSlot::activate(const int value) {
     }
 }
 
+void TableSlot::set_strategies(StrategyInfo* info) {
+    if (strategies == info) {
+        return;
+    }
+    if (strategies) {
+        disconnect(
+            strategies, &StrategyInfo::new_strategy, this,
+            &TableSlot::on_new_strategy
+        );
+    }
+    strategies = info;
+    if (strategies) {
+        connect(
+            strategies, &StrategyInfo::new_strategy, this,
+            &TableSlot::on_new_strategy
+        );
+        on_new_strategy();
+    }
+}
+
 void TableSlot::on_new_strategy() const {
     QStringList items;
     for (const auto& item : strategies->get_strategies()) {
@@ -308,8 +325,9 @@ void TableSlot::paintEvent(QPaintEvent* event) {
     Cards::paintEvent(event);
 
     QPainter painter(this);
-    QColor highlight = Qt::green;
-    QColor base = Qt::gray;
+    const Settings& opts = Settings::instance();
+    QColor highlight = opts.card_border();
+    QColor base = Qt::gray; // opts.card_background();
     QColor mix = QColor::fromRgbF(
         base.redF() + (highlight.redF() - base.redF()) * highlight_opacity,
         base.greenF()
@@ -317,7 +335,7 @@ void TableSlot::paintEvent(QPaintEvent* event) {
         base.blueF() + (highlight.blueF() - base.blueF()) * highlight_opacity
     );
     painter.setPen(QPen(mix, 6));
-    painter.drawRoundedRect(rect().adjusted(3, 3, -3, -3), 25, 25);
+    painter.drawRoundedRect(rect().adjusted(3, 3, -3, -3), 3, 3);
 }
 
 void TableSlot::set_highlight_opacity(const float value) {

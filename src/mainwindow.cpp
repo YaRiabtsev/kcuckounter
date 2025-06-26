@@ -23,10 +23,21 @@
  */
 
 // Qt
+#include <QCheckBox>
 #include <QCloseEvent>
+#include <QColorDialog>
+#include <QComboBox>
+#include <QDir>
+#include <QFormLayout>
 #include <QMessageBox>
+#include <QPainter>
+#include <QPushButton>
+#include <QSettings>
+#include <QStandardPaths>
 #include <QStatusBar>
+#include <QSvgRenderer>
 #include <QToolBar>
+#include <QVBoxLayout>
 // KDEGames
 #include <KGameClock>
 #include <KGameHighScoreDialog>
@@ -36,7 +47,10 @@
 #include <KLocalizedString>
 // own
 #include "mainwindow.hpp"
+#include "settings.hpp"
 #include "table/table.hpp"
+#include "widgets/cards.hpp"
+#include "widgets/carousel.hpp"
 
 MainWindow::MainWindow(QWidget* parent)
     : KXmlGuiWindow(parent) {
@@ -62,9 +76,30 @@ MainWindow::MainWindow(QWidget* parent)
     connect(table, &Table::score_update, this, &MainWindow::on_score_update);
     connect(table, &Table::game_over, this, &MainWindow::on_game_over);
 
+    const Settings& opts = Settings::instance();
+    connect(
+        &opts, &Settings::show_score_changed, score_label, &QWidget::setVisible
+    );
+    connect(
+        &opts, &Settings::show_time_changed, time_label, &QWidget::setVisible
+    );
+    connect(
+        &opts, &Settings::show_speed_changed, speed_slider, &QWidget::setVisible
+    );
+    connect(
+        &opts, &Settings::card_theme_changed, table, &Table::set_card_theme
+    );
+    // connect(&opts, &Settings::card_background_changed, table,
+    // qOverload<>(&QWidget::update));
+    connect(
+        &opts, &Settings::card_border_changed, table,
+        qOverload<>(&QWidget::update)
+    );
+
     setCentralWidget(table);
     setup_actions();
     new_game();
+    load_settings();
 }
 
 void MainWindow::setup_actions() {
@@ -84,23 +119,30 @@ void MainWindow::setup_actions() {
         this, &MainWindow::pause_game, actionCollection()
     );
     action_end_game = KGameStandardAction::end(
-       this, &MainWindow::force_end_game, actionCollection());
+        this, &MainWindow::force_end_game, actionCollection()
+    );
 
-    auto *diff = KGameDifficulty::global();
-    diff->addStandardLevelRange(
-        KGameDifficultyLevel::Easy,
-        KGameDifficultyLevel::Hard,
-        KGameDifficultyLevel::Easy);
+    auto* diff = KGameDifficulty::global();
     diff->addLevel(new KGameDifficultyLevel(
-        1000, QByteArray("Nightmare"), i18n("Nightmare")));
+        1, QByteArray("Sequential"), i18n("Sequential")
+    ));
+    diff->addLevel(
+        new KGameDifficultyLevel(3, QByteArray("Random"), i18n("Random"))
+    );
+    diff->addLevel(new KGameDifficultyLevel(
+        10, QByteArray("Simultaneous"), i18n("Simultaneous")
+    ));
     KGameDifficultyGUI::init(this);
-    connect(diff, &KGameDifficulty::currentLevelChanged,
-            this, &MainWindow::new_game);
+    connect(
+        diff, &KGameDifficulty::currentLevelChanged, this, &MainWindow::new_game
+    );
 
     setupGUI(Default);
 
     auto* mainToolBar = addToolBar(i18n("Main Toolbar"));
-    mainToolBar->addAction(actionCollection()->action(QStringLiteral("game_new")));
+    mainToolBar->addAction(
+        actionCollection()->action(QStringLiteral("game_new"))
+    );
     mainToolBar->addAction(action_end_game);
     mainToolBar->addAction(action_pause);
 }
@@ -119,9 +161,17 @@ void MainWindow::new_game() {
     }
     game_clock->restart();
     game_clock->pause();
-    table->create_new_game(KGameDifficulty::globalLevel());
+    table->create_new_game(
+        KGameDifficulty::global()->currentLevel()->hardness()
+    );
+    action_pause->setEnabled(true);
+    if (action_end_game) {
+        action_end_game->setEnabled(true);
+    }
     if (!action_pause->isChecked()) {
         action_pause->setChecked(true);
+    } else {
+        pause_game(true);
     }
     score = { 0, 0 };
     score_label->setText(i18n("Score: 0/0"));
@@ -129,7 +179,11 @@ void MainWindow::new_game() {
     time_label->setText(i18n("Time: 00:00"));
 }
 
-void MainWindow::force_end_game() const { table->force_game_over(); }
+void MainWindow::force_end_game() const {
+    table->force_game_over();
+    game_clock->pause();
+    action_pause->setEnabled(false);
+}
 
 void MainWindow::closeEvent(QCloseEvent* event) {
     if (score.second > 0) {
@@ -149,6 +203,9 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 void MainWindow::on_game_over() {
     game_clock->pause();
     action_pause->setEnabled(false);
+    if (action_end_game) {
+        action_end_game->setEnabled(false);
+    }
     KGameDifficulty::global()->setGameRunning(false);
     QPointer scoreDialog = new KGameHighScoreDialog(
         KGameHighScoreDialog::Name | KGameHighScoreDialog::Time, this
@@ -178,18 +235,201 @@ void MainWindow::show_high_scores() {
     delete score_dialog;
 }
 
-void MainWindow::configure_settings() { }
+void MainWindow::configure_settings() {
+    Settings& opts = Settings::instance();
+
+    QDialog dialog(this);
+    dialog.setWindowTitle(i18n("Settings"));
+
+    auto* tabs = new QTabWidget(&dialog);
+    auto* general = new QWidget;
+    auto* generalForm = new QFormLayout(general);
+
+    auto* indexing = new QCheckBox(general);
+    indexing->setChecked(opts.indexing());
+    generalForm->addRow(indexing, new QLabel(i18n("Use card indexing")));
+
+    auto* strategy_hint = new QCheckBox(general);
+    strategy_hint->setChecked(opts.strategy_hint());
+    generalForm->addRow(
+        strategy_hint, new QLabel(i18n("Add name of strategy"))
+    );
+
+    auto* training = new QCheckBox(general);
+    training->setChecked(opts.training());
+    generalForm->addRow(training, new QLabel(i18n("Is training")));
+
+    auto* show_time = new QCheckBox(general);
+    show_time->setChecked(opts.show_time());
+    generalForm->addRow(show_time, new QLabel(i18n("Show time")));
+
+    auto* show_score = new QCheckBox(general);
+    show_score->setChecked(opts.show_score());
+    generalForm->addRow(show_score, new QLabel(i18n("Show score")));
+
+    auto* show_speed = new QCheckBox(general);
+    show_speed->setChecked(opts.show_speed());
+    generalForm->addRow(show_speed, new QLabel(i18n("Show speed control")));
+
+    // theme page with preview
+    auto* theme_page = new QWidget;
+    auto* theme_layout = new QVBoxLayout(theme_page);
+    auto* theme_combo = new QComboBox(theme_page);
+    const QDir card_dir(QStringLiteral("/usr/share/carddecks"));
+    for (const QStringList dirs
+         = card_dir.entryList(QStringList() << "svg-*", QDir::Dirs);
+         const QString& dir : dirs) {
+        const QString id = dir.mid(4);
+        QSettings deck(
+            card_dir.filePath(dir + "/index.desktop"), QSettings::IniFormat
+        );
+        const QString name = deck.value(QStringLiteral("Name"), id).toString();
+        theme_combo->addItem(name, id);
+    }
+    for (int i = 0; i < theme_combo->count(); ++i) {
+        if (theme_combo->itemData(i).toString() == opts.card_theme()) {
+            theme_combo->setCurrentIndex(i);
+            break;
+        }
+    }
+
+    QVector<Cards*> preview_cards;
+    QSvgRenderer* theme_renderer = nullptr;
+    auto* carousel = new Carousel(QSizeF(60, 90));
+
+    auto update_preview = [&](const QString& id) {
+        delete theme_renderer;
+        theme_renderer = new QSvgRenderer(
+            QStandardPaths::locate(
+                QStandardPaths::GenericDataLocation,
+                QStringLiteral("carddecks/svg-%1/%1.svgz").arg(id)
+            )
+        );
+        if (preview_cards.isEmpty()) {
+            const auto deck = Cards::generate_deck(1);
+            for (const qint32 c : deck) {
+                auto* card = new Cards(theme_renderer);
+                card->set_id(c);
+                carousel->add_widget(card);
+                preview_cards.push_back(card);
+            }
+        } else {
+            for (auto* card : preview_cards) {
+                card->set_renderer(theme_renderer);
+            }
+        }
+    };
+
+    update_preview(theme_combo->currentData().toString());
+    theme_layout->addWidget(theme_combo);
+    theme_layout->addWidget(carousel);
+    connect(theme_combo, &QComboBox::currentIndexChanged, this, [=](int) {
+        update_preview(theme_combo->currentData().toString());
+    });
+
+    // compact theme page with colour options
+    auto* short_page = new QWidget;
+    auto* short_layout = new QVBoxLayout(short_page);
+    auto* short_combo = new QComboBox(short_page);
+    for (int i = 0; i < theme_combo->count(); ++i) {
+        short_combo->addItem(
+            theme_combo->itemText(i), theme_combo->itemData(i)
+        );
+    }
+    short_combo->setCurrentIndex(theme_combo->currentIndex());
+    short_layout->addWidget(short_combo);
+
+    // auto* bg_button = new QPushButton(i18n("Background"), short_page);
+    auto* border_button = new QPushButton(i18n("Border"), short_page);
+    // QColor bg_color = opts.card_background();
+    QColor border_color = opts.card_border();
+    auto set_btn_color = [](QPushButton* b, const QColor& c) {
+        b->setStyleSheet(QStringLiteral("background-color:%1").arg(c.name()));
+    };
+    // set_btn_color(bg_button, bg_color);
+    set_btn_color(border_button, border_color);
+    // connect(bg_button, &QPushButton::clicked, short_page, [&]() {
+    //     QColor c = QColorDialog::getColor(bg_color, short_page);
+    //     if (c.isValid()) {
+    //         bg_color = c;
+    //         set_btn_color(bg_button, c);
+    //     }
+    // });
+    connect(border_button, &QPushButton::clicked, short_page, [&] {
+        const QColor c = QColorDialog::getColor(border_color, short_page);
+        if (c.isValid()) {
+            border_color = c;
+            set_btn_color(border_button, c);
+        }
+    });
+    // short_layout->addWidget(bg_button);
+    short_layout->addWidget(border_button);
+
+    connect(
+        theme_combo, &QComboBox::currentIndexChanged, short_combo,
+        &QComboBox::setCurrentIndex
+    );
+    connect(
+        short_combo, &QComboBox::currentIndexChanged, theme_combo,
+        &QComboBox::setCurrentIndex
+    );
+
+    tabs->addTab(general, i18n("General"));
+    tabs->addTab(theme_page, i18n("Card Theme"));
+    tabs->addTab(short_page, i18n("Theme List"));
+
+    auto* buttons = new QDialogButtonBox(
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel
+        | QDialogButtonBox::Apply
+    );
+    auto* layout = new QVBoxLayout(&dialog);
+    layout->addWidget(tabs);
+    layout->addWidget(buttons);
+
+    auto apply = [&] {
+        opts.set_indexing(indexing->isChecked());
+        opts.set_strategy_hint(strategy_hint->isChecked());
+        opts.set_training(training->isChecked());
+        opts.set_show_time(show_time->isChecked());
+        opts.set_show_score(show_score->isChecked());
+        opts.set_show_speed(show_speed->isChecked());
+        opts.set_card_theme(theme_combo->currentData().toString());
+        // opts.set_card_background(bg_color);
+        opts.set_card_border(border_color);
+    };
+
+    connect(buttons, &QDialogButtonBox::accepted, &dialog, [&]() {
+        apply();
+        dialog.accept();
+    });
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    connect(
+        buttons->button(QDialogButtonBox::Apply), &QPushButton::clicked,
+        &dialog, apply
+    );
+
+    dialog.exec();
+    delete theme_renderer;
+}
 
 void MainWindow::pause_game(const bool paused) const {
     table->pause(paused);
     if (paused) {
         game_clock->pause();
+        KGameDifficulty::global()->setGameRunning(false);
     } else {
         game_clock->resume();
+        KGameDifficulty::global()->setGameRunning(true);
     }
 }
 
-void MainWindow::load_settings() { }
+void MainWindow::load_settings() const {
+    const Settings& opts = Settings::instance();
+    score_label->setVisible(opts.show_score());
+    time_label->setVisible(opts.show_time());
+    speed_slider->setVisible(opts.show_speed());
+    table->set_card_theme(opts.card_theme());
+}
 
 void MainWindow::on_score_update(const bool inc) {
     score.second++;

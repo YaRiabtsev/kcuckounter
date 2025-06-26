@@ -46,12 +46,15 @@ class Table final : public QWidget {
 public:
     explicit Table(QWidget* parent = nullptr);
 
-    void create_new_game(KGameDifficultyLevel::StandardLevel level);
+    void create_new_game(int level);
 
     void pause(bool paused);
 
+public slots:
+    void set_card_theme(const QString& theme);
+
 public Q_SLOTS:
-    void set_speed(int interval_ms);
+    void set_speed(int interval_ms) const;
     void force_game_over();
 
 signals:
@@ -92,8 +95,6 @@ protected:
 private:
     void add_new_table_slot(bool is_active = false);
 
-    void set_renderer(const QString& card_theme);
-
     /**
      * @brief Determine how many columns can fit on screen.
      *
@@ -116,17 +117,26 @@ private:
         qint32 new_column_count, double new_scale, bool new_rotated = false
     );
 
-    QGridLayout* layout;
+    QGridLayout* layout {};
     QSvgRenderer* renderer {};
     QRectF bounds;
-    QTimer* countdown;
-    StrategyInfo* strategy_info;
+    QTimer* countdown {};
+    StrategyInfo* strategy_info {};
+    QString current_theme;
 
     bool launching {};
     qint32 column_count = -1;
-    qint32 table_slot_count_limit {};
+    qint32 table_slot_count_limit = 1;
     qreal scale = -1;
     bool rotated = false;
+
+    enum class card_mode {
+        Ordered,
+        Simultaneous,
+        Random
+    } mode
+        = card_mode::Ordered;
+    qint32 order_index = 0;
 
     QVector<int> swap_target;
     QVector<TableSlot*> items;

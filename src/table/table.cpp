@@ -39,16 +39,16 @@ Table::Table(QWidget* parent)
     countdown = new QTimer(this);
     connect(countdown, &QTimer::timeout, this, &Table::pick_up_cards);
 
-    set_renderer("tigullio-international");
-    strategy_info = new StrategyInfo(renderer);
-
     layout = new QGridLayout();
     setLayout(layout);
+
+    set_card_theme("tigullio-international");
 }
-void Table::set_speed(const int interval_ms)
-{
+
+void Table::set_speed(const int interval_ms) const {
     countdown->setInterval(interval_ms);
 }
+
 void Table::on_table_slot_activated() {
     const auto* table_slot = qobject_cast<TableSlot*>(sender());
     available.insert(layout->indexOf(table_slot));
@@ -221,40 +221,57 @@ void Table::pick_up_cards() {
         emit game_over();
         return;
     }
-    QSet<qint32> picked;
-    while (!available.empty()
-           && (picked.size() < table_slot_count_limit
-               || KGameDifficulty::globalLevel()
-                   == KGameDifficultyLevel::Custom)) {
-        const int idx = QRandomGenerator::global()->bounded(
-            static_cast<qint32>(available.size())
-        );
-        qint32 key;
-        {
-            auto it = available.begin();
-            std::advance(it, idx);
-            key = *it;
+    if (mode == card_mode::Simultaneous) {
+        for (const qint32 key : available) {
+            items[key]->pick_up_card();
         }
-        picked.insert(key);
-        items[key]->pick_up_card();
-        available.remove(key);
+        return;
     }
-    available.unite(picked);
-    // emit deHighlighting
-    picked.clear();
+
+    qint32 key;
+    if (mode == card_mode::Random) {
+
+        do {
+            const qint32 idx = QRandomGenerator::global()->bounded(
+                static_cast<qint32>(available.size())
+            );
+            {
+                auto it = available.begin();
+                std::advance(it, idx);
+                key = *it;
+            }
+        } while (available.size() > 1 && key == order_index);
+        order_index = key;
+    } else {
+        do {
+            key = order_index++;
+            order_index %= static_cast<qint32>(items.size());
+        } while (!available.contains(key));
+    }
+
+    items[key]->pick_up_card();
 }
 
-void Table::set_renderer(const QString& card_theme) {
+void Table::set_card_theme(const QString& theme) {
+    current_theme = theme;
+    delete renderer;
     renderer = new QSvgRenderer(
         QStandardPaths::locate(
             QStandardPaths::GenericDataLocation,
-            QString("carddecks/svg-%1/%1.svgz").arg(card_theme)
+            QString("carddecks/svg-%1/%1.svgz").arg(theme)
         )
     );
     bounds = renderer->boundsOnElement("back");
+    delete strategy_info;
+    strategy_info = new StrategyInfo(renderer);
+    for (TableSlot* slot : items) {
+        slot->set_renderer(renderer);
+        slot->set_strategies(strategy_info);
+    }
+    reorganize_table(column_count, scale, rotated);
 }
 
-void Table::create_new_game(const KGameDifficultyLevel::StandardLevel level) {
+void Table::create_new_game(const int level) {
     countdown->stop();
     launching = true;
     while (!items.empty()) {
@@ -265,33 +282,25 @@ void Table::create_new_game(const KGameDifficultyLevel::StandardLevel level) {
     }
     available.clear();
     jokers.clear();
-    switch (level) {
-    case KGameDifficultyLevel::Easy:
-        // tableSlotsCount: 1+
-        // cardPickUpsAtTime: 1
-        table_slot_count_limit = 1;
+    order_index = 0;
+    table_slot_count_limit = 1;
+    switch (static_cast<qint32>(level)) {
+    case 1:
+        mode = card_mode::Ordered;
         break;
-    case KGameDifficultyLevel::Medium:
-        // tableSlotsCount: 2+
-        // cardPickUpsAtTime: 2
-        table_slot_count_limit = 2;
+    case 3:
+        mode = card_mode::Random;
         break;
-    case KGameDifficultyLevel::Hard:
-        // tableSlotsCount: 4+
-        // cardPickUpsAtTime: 4
-        table_slot_count_limit = 4;
-        break;
-    case KGameDifficultyLevel::Custom: // Nightmare
-        // tableSlotsCount: 6+
-        // cardPickUpsAtTime: all
-        table_slot_count_limit = 6;
+    case 10:
+        mode = card_mode::Simultaneous;
         break;
     default:
         break;
     }
-    while (items.count() < table_slot_count_limit) {
-        add_new_table_slot(true);
-    }
+
+    // while (items.count() < table_slot_count_limit) {
+    //     add_new_table_slot(true);
+    // }
     add_new_table_slot();
     calculate_new_column_count(
         size(), bounds.size(), static_cast<qint32>(items.count())

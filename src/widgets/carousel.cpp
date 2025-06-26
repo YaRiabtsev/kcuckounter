@@ -24,8 +24,8 @@
 
 // Qt
 #include <QBoxLayout>
-#include <QPushButton>
 #include <QPropertyAnimation>
+#include <QPushButton>
 // own
 #include "widgets/carousel.hpp"
 
@@ -116,7 +116,8 @@ void Carousel::slide(const qint32 direction) {
     }
 
     const QPoint start_pos = carousel_box->pos();
-    const QPoint end_pos = start_pos - QPoint(static_cast<qint32>(direction * item_width), 0);
+    const QPoint end_pos
+        = start_pos - QPoint(static_cast<qint32>(direction * item_width), 0);
 
     animation = new QPropertyAnimation(carousel_box, "pos", this);
     animation->setDuration(250);
@@ -124,13 +125,16 @@ void Carousel::slide(const qint32 direction) {
     animation->setStartValue(start_pos);
     animation->setEndValue(end_pos);
 
-    connect(animation, &QPropertyAnimation::finished, this, [this, direction, start_pos] {
-        carousel_box->move(start_pos);
+    connect(
+        animation, &QPropertyAnimation::finished, this,
+        [this, direction, start_pos] {
+            carousel_box->move(start_pos);
             const auto widgets_size = static_cast<qint32>(widgets.size());
-        idx = (idx + direction + widgets_size) % widgets_size;
-        update_layout();
-        animation->deleteLater();
-        animation = nullptr;
-    });
+            idx = (idx + direction + widgets_size) % widgets_size;
+            update_layout();
+            animation->deleteLater();
+            animation = nullptr;
+        }
+    );
     animation->start();
 }

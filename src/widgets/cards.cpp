@@ -29,6 +29,8 @@
 // own
 #include "widgets/cards.hpp"
 
+// #include "settings.hpp"
+
 QList<qint32> Cards::shuffle_cards(
     const qint32 deck_count, const qint32 shuffle_coefficient
 ) {
@@ -147,6 +149,8 @@ void Cards::paintEvent(QPaintEvent* event) {
 
     if (renderer->isValid() && renderer->elementExists(svg_name)) {
         QPainter painter(this);
+        // const Settings& opts = Settings::instance();
+        // painter.fillRect(rect(), opts.card_background());
         if (rotated_svg) {
             painter.translate(width() / 2.0, height() / 2.0);
             painter.rotate(90);
@@ -199,6 +203,12 @@ void Cards::set_rotated(const bool rotated) {
         rotated_svg = rotated;
         update();
     }
+}
+
+void Cards::set_renderer(QSvgRenderer* r) {
+    renderer = r;
+    setFixedSize(renderer->boundsOnElement("back").size().toSize());
+    update();
 }
 
 //

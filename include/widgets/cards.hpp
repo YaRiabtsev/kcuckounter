@@ -160,6 +160,9 @@ public:
      */
     void set_rotated(bool rotated);
 
+public slots:
+    void set_renderer(QSvgRenderer* renderer);
+
 private:
     QString svg_name;
     qint32 current_card_id;

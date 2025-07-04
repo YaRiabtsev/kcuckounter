@@ -151,7 +151,9 @@ public:
      */
     [[nodiscard]] qint32 get_current_rank() const noexcept;
 
-    [[nodiscard]] qint32 get_current_id() const noexcept { return current_card_id; }
+    [[nodiscard]] qint32 get_current_id() const noexcept {
+        return current_card_id;
+    }
 
     /**
      * @brief Extract the suit/colour from a card id.
@@ -175,7 +177,6 @@ private:
 
     QSvgRenderer* renderer;
     bool rotated_svg = false;
-
 
     QPixmap pixmap;
     bool pixmap_dirty = true;

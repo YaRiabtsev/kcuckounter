@@ -201,6 +201,7 @@ void Cards::set_renderer(QSvgRenderer* r) {
     pixmap_dirty = true;
     update();
 }
+
 void Cards::update_pixmap() {
     if (!pixmap_dirty) {
         return;
@@ -228,6 +229,7 @@ void Cards::update_pixmap() {
     }
     pixmap_dirty = false;
 }
+
 //
 // void Cards::onResized(QSize newFixedSize) {
 //    if (size() != newFixedSize) {

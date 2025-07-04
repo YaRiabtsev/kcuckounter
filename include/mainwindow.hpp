@@ -67,6 +67,7 @@ private Q_SLOTS:
     void on_score_update(bool inc);
 
     void update_lives_display() const;
+
 private:
     void setup_actions();
 

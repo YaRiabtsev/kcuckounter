@@ -29,8 +29,8 @@
 #include <QPainter>
 #include <QPropertyAnimation>
 #include <QPushButton>
-#include <QSpinBox>
 #include <QRandomGenerator>
+#include <QSpinBox>
 #include <QSvgRenderer>
 // KF
 #include <KLocalizedString>
@@ -108,7 +108,6 @@ TableSlot::TableSlot(
         &opts, &Settings::infinity_mode_changed, deck_count,
         &QWidget::setVisible
     );
-
 
     // QPushButtons:
     auto* submit_button

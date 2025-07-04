@@ -40,6 +40,7 @@ public:
     [[nodiscard]] bool show_time() const;
     [[nodiscard]] bool show_score() const;
     [[nodiscard]] bool show_speed() const;
+    [[nodiscard]] bool infinity_mode() const;
     [[nodiscard]] QString card_theme() const;
     // [[nodiscard]]  QColor card_background() const;
     [[nodiscard]] QColor card_border() const;
@@ -51,6 +52,7 @@ public slots:
     void set_show_time(bool value);
     void set_show_score(bool value);
     void set_show_speed(bool value);
+    void set_infinity_mode(bool value);
     void set_card_theme(const QString& value);
     // void set_card_background(const QColor& value);
     void set_card_border(const QColor& value);
@@ -62,6 +64,7 @@ signals:
     void show_time_changed(bool value);
     void show_score_changed(bool value);
     void show_speed_changed(bool value);
+    void infinity_mode_changed(bool value);
     void card_theme_changed(const QString& value);
     // void card_background_changed(const QColor& value);
     void card_border_changed(const QColor& value);
@@ -75,6 +78,7 @@ private:
     bool show_time_ = true;
     bool show_score_ = true;
     bool show_speed_ = true;
+    bool infinity_mode_ = false;
     QString card_theme_ = "tigullio-international";
     // QColor card_background_ = Qt::white;
     QColor card_border_ = Qt::green;

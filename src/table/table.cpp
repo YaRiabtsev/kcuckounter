@@ -198,6 +198,7 @@ void Table::reorganize_table(
     for (qint32 i = 0; i < items_count; i++) {
         TableSlot* item = items[i];
         layout->addWidget(item, i / new_column_count, i % new_column_count);
+        item->set_infinite_params(i, items_count);
         item->show();
     }
     column_count = new_column_count;

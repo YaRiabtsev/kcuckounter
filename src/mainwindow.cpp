@@ -281,6 +281,10 @@ void MainWindow::configure_settings() {
     show_speed->setChecked(opts.show_speed());
     generalForm->addRow(show_speed, new QLabel(i18n("Show speed control")));
 
+    auto* infinity_mode = new QCheckBox(general);
+    infinity_mode->setChecked(opts.infinity_mode());
+    generalForm->addRow(infinity_mode, new QLabel(i18n("Infinity mode")));
+
     // theme page with preview
     auto* theme_page = new QWidget;
     auto* theme_layout = new QVBoxLayout(theme_page);
@@ -410,6 +414,7 @@ void MainWindow::configure_settings() {
         opts.set_show_time(show_time->isChecked());
         opts.set_show_score(show_score->isChecked());
         opts.set_show_speed(show_speed->isChecked());
+        opts.set_infinity_mode(infinity_mode->isChecked());
         opts.set_card_theme(theme_combo->currentData().toString());
         // opts.set_card_background(bg_color);
         opts.set_card_border(border_color);

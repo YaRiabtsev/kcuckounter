@@ -30,6 +30,7 @@
 #include <QPropertyAnimation>
 #include <QPushButton>
 #include <QSpinBox>
+#include <QRandomGenerator>
 #include <QSvgRenderer>
 // KF
 #include <KLocalizedString>
@@ -102,6 +103,12 @@ TableSlot::TableSlot(
         &TableSlot::activate
     );
     deck_count->setRange(is_active, 10);
+    deck_count->setVisible(!opts.infinity_mode());
+    connect(
+        &opts, &Settings::infinity_mode_changed, deck_count,
+        &QWidget::setVisible
+    );
+
 
     // QPushButtons:
     auto* submit_button
@@ -194,7 +201,11 @@ TableSlot::TableSlot(
 
 void TableSlot::on_game_paused(const bool paused) {
     if (!settings_frame->isHidden()) {
-        cards = shuffle_cards(deck_count->value());
+        if (Settings::instance().infinity_mode()) {
+            cards.clear();
+        } else {
+            cards = shuffle_cards(deck_count->value());
+        }
         refresh_button->show();
         //        swapButton->hide();
         set_id(-1);
@@ -217,28 +228,69 @@ void TableSlot::on_game_paused(const bool paused) {
 bool TableSlot::is_fake() const { return fake; }
 
 void TableSlot::pick_up_card() {
-    if (cards.empty()) {
-        set_name("back");
-        emit table_slot_finished();
-        settings_frame->show();
-        control_frame->show();
-        update();
-        return;
+    const Settings& opts = Settings::instance();
+    if (opts.infinity_mode()) {
+        qint32 last_id = get_current_id();
+        double k = 1.0 + static_cast<double>(slot_idx + 1) / total_slots;
+        auto* rng = QRandomGenerator::global();
+        qint32 new_card;
+        if (rng->bounded(54) == 0) {
+            qint32 colour = rng->bounded(2) ? Red : Black;
+            new_card = (colour & 0xff) << 8;
+        } else {
+            int suit;
+            int rank;
+            bool have_last = last_id >= 0 && !Cards::is_joker(last_id);
+            if (have_last && rng->generateDouble() < 1.0 / (4.0 * k)) {
+                suit = Cards::get_suit(last_id);
+            } else {
+                QVector<int> suits;
+                for (int s = Clubs; s <= Spades; ++s) {
+                    if (!have_last || s != Cards::get_suit(last_id))
+                        suits.append(s);
+                }
+                suit = suits[rng->bounded(suits.size())];
+            }
+
+            if (have_last && rng->generateDouble() < 1.0 / (13.0 * k)) {
+                rank = Cards::get_rank(last_id);
+            } else {
+                QVector<int> ranks;
+                for (int r = Ace; r <= King; ++r) {
+                    if (!have_last || r != Cards::get_rank(last_id))
+                        ranks.append(r);
+                }
+                rank = ranks[rng->bounded(ranks.size())];
+            }
+            new_card = ((suit & 0xff) << 8) | (rank & 0xff);
+        }
+        set_id(new_card);
+    } else {
+        if (cards.empty()) {
+            set_name("back");
+            emit table_slot_finished();
+            settings_frame->show();
+            control_frame->show();
+            update();
+            return;
+        }
+        //    if (isJoker()){
+        //        messageLabel->hide();
+        //    }
+        set_id(cards.front());
+        set_name(get_card_name_by_current_id());
+        cards.pop_front();
     }
-    //    if (isJoker()){
-    //        messageLabel->hide();
-    //    }
-    set_id(cards.front());
-    set_name(get_card_name_by_current_id());
-    cards.pop_front();
     if (!message_label->isHidden()) {
         message_label->hide();
     }
     update();
-    index_label->setText(i18n(
-        "%1/%2", deck_count->value() * 54 - cards.size(),
-        deck_count->value() * 54
-    ));
+    if (!opts.infinity_mode()) {
+        index_label->setText(i18n(
+            "%1/%2", deck_count->value() * 54 - cards.size(),
+            deck_count->value() * 54
+        ));
+    }
     if (is_joker()) {
         user_quizzing();
     } else {
@@ -264,7 +316,11 @@ void TableSlot::user_checking() {
 }
 
 void TableSlot::reshuffle_deck() {
-    cards = shuffle_cards(deck_count->value());
+    if (Settings::instance().infinity_mode()) {
+        cards.clear();
+    } else {
+        cards = shuffle_cards(deck_count->value());
+    }
     settings_frame->hide();
     // hide controlFrame if not paused
 }
@@ -282,6 +338,11 @@ void TableSlot::activate(const int value) {
         deck_count->setMinimum(1);
         emit table_slot_activated();
     }
+}
+
+void TableSlot::set_infinite_params(const int idx, const int total) {
+    slot_idx = idx;
+    total_slots = total > 0 ? total : 1;
 }
 
 void TableSlot::set_strategies(StrategyInfo* info) {

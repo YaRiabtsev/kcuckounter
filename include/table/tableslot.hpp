@@ -76,6 +76,8 @@ public:
      */
     void pick_up_card();
 
+    void set_infinite_params(int idx, int total);
+
 protected:
     void paintEvent(QPaintEvent* event) override;
 
@@ -152,6 +154,9 @@ private:
     QPushButton* close_button;
 
     QComboBox* strategy_box;
+
+    qint32 slot_idx = 0;
+    qint32 total_slots = 1;
 };
 
 #endif // CARD_COUNTER_TABLESLOT_HPP

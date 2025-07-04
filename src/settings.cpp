@@ -43,6 +43,8 @@ bool Settings::show_score() const { return show_score_; }
 
 bool Settings::show_speed() const { return show_speed_; }
 
+bool Settings::infinity_mode() const { return infinity_mode_; }
+
 QString Settings::card_theme() const { return card_theme_; }
 
 // QColor Settings::card_background() const { return card_background_; }
@@ -88,6 +90,13 @@ void Settings::set_show_speed(const bool value) {
     if (show_speed_ != value) {
         show_speed_ = value;
         emit show_speed_changed(value);
+    }
+}
+
+void Settings::set_infinity_mode(const bool value) {
+    if (infinity_mode_ != value) {
+        infinity_mode_ = value;
+        emit infinity_mode_changed(value);
     }
 }
 

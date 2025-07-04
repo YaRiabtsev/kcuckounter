@@ -147,30 +147,15 @@ qint32 Cards::get_suit(const qint32 id) noexcept { return (id >> 8) & 0xff; }
 void Cards::paintEvent(QPaintEvent* event) {
     Q_UNUSED(event)
 
-    if (renderer->isValid() && renderer->elementExists(svg_name)) {
-        QPainter painter(this);
-        // const Settings& opts = Settings::instance();
-        // painter.fillRect(rect(), opts.card_background());
-        if (rotated_svg) {
-            painter.translate(width() / 2.0, height() / 2.0);
-            painter.rotate(90);
-            painter.translate(-height() / 2.0, -width() / 2.0);
-            renderer->render(
-                &painter, svg_name,
-                QRectF(
-                    0, 0, static_cast<qreal>(height()),
-                    static_cast<qreal>(width())
-                )
-            );
-        } else {
-            renderer->render(&painter, svg_name, rect());
-        }
-        //        qDebug()<<m_renderer->aspectRatioMode();
-        //        if (false) {
-        //            painter.setPen(QPen(Qt::red, 5));
-        //            painter.drawRoundedRect(rect(), 19, 19);
-        //        }
-    }
+    update_pixmap();
+
+    QPainter painter(this);
+    painter.drawPixmap(0, 0, pixmap);
+}
+
+void Cards::resizeEvent(QResizeEvent* event) {
+    QWidget::resizeEvent(event);
+    pixmap_dirty = true;
 }
 
 Cards::Cards(QSvgRenderer* renderer, QWidget* parent)
@@ -179,6 +164,7 @@ Cards::Cards(QSvgRenderer* renderer, QWidget* parent)
     , current_card_id(-1)
     , renderer(renderer) {
     setFixedSize(renderer->boundsOnElement("back").size().toSize());
+    pixmap_dirty = true;
 }
 
 void Cards::set_id(const qint32 id) {
@@ -186,7 +172,10 @@ void Cards::set_id(const qint32 id) {
     set_name(card_name(current_card_id));
 }
 
-void Cards::set_name(QString name) { svg_name = std::move(name); }
+void Cards::set_name(QString name) {
+    svg_name = std::move(name);
+    pixmap_dirty = true;
+}
 
 QString Cards::get_card_name_by_current_id(const qint32 standard) const {
     return card_name(current_card_id, standard);
@@ -201,6 +190,7 @@ qint32 Cards::get_current_rank() const noexcept {
 void Cards::set_rotated(const bool rotated) {
     if (rotated_svg != rotated) {
         rotated_svg = rotated;
+        pixmap_dirty = true;
         update();
     }
 }
@@ -208,9 +198,36 @@ void Cards::set_rotated(const bool rotated) {
 void Cards::set_renderer(QSvgRenderer* r) {
     renderer = r;
     setFixedSize(renderer->boundsOnElement("back").size().toSize());
+    pixmap_dirty = true;
     update();
 }
-
+void Cards::update_pixmap() {
+    if (!pixmap_dirty) {
+        return;
+    }
+    pixmap = QPixmap(size());
+    pixmap.fill(Qt::transparent);
+    if (renderer->isValid() && renderer->elementExists(svg_name)) {
+        QPainter p(&pixmap);
+        if (rotated_svg) {
+            p.translate(width() / 2.0, height() / 2.0);
+            p.rotate(90);
+            p.translate(-height() / 2.0, -width() / 2.0);
+            renderer->render(
+                &p, svg_name,
+                QRectF(
+                    0, 0, static_cast<qreal>(height()),
+                    static_cast<qreal>(width())
+                )
+            );
+        } else {
+            renderer->render(
+                &p, svg_name, QRectF(QPointF(0, 0), QSizeF(size()))
+            );
+        }
+    }
+    pixmap_dirty = false;
+}
 //
 // void Cards::onResized(QSize newFixedSize) {
 //    if (size() != newFixedSize) {

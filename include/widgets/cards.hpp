@@ -26,6 +26,8 @@
 #define CARD_COUNTER_CARDS_HPP
 
 // Qt
+#include <QPixmap>
+#include <QResizeEvent>
 #include <QWidget>
 
 class QSvgRenderer;
@@ -43,6 +45,8 @@ public:
     explicit Cards(QSvgRenderer* renderer, QWidget* parent = nullptr);
 
     void paintEvent(QPaintEvent* event) override;
+
+    void resizeEvent(QResizeEvent* event) override;
 
     void set_id(qint32 id);
 
@@ -169,6 +173,12 @@ private:
 
     QSvgRenderer* renderer;
     bool rotated_svg = false;
+
+
+    QPixmap pixmap;
+    bool pixmap_dirty = true;
+
+    void update_pixmap();
 };
 
 #endif // CARD_COUNTER_CARDS_HPP

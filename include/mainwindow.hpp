@@ -60,10 +60,13 @@ private Q_SLOTS:
 
     void configure_settings();
 
+    void card_mode_changed();
+
     void pause_game(bool paused) const;
 
     void on_score_update(bool inc);
 
+    void update_lives_display() const;
 private:
     void setup_actions();
 
@@ -77,6 +80,10 @@ private:
     QPointer<QLabel> time_label = new QLabel;
     QPointer<QLabel> score_label = new QLabel;
     QPointer<QSlider> speed_slider = new QSlider(Qt::Horizontal);
+    QPointer<QLabel> lives_label = new QLabel;
+
+    int lives = 3;
+    int max_lives = 3;
 
     QPair<qint32, qint32> score;
     QAction* action_end_game = nullptr;

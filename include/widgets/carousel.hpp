@@ -44,6 +44,9 @@ public:
      */
     void add_widget(QWidget* widget);
 
+    /** Force recalculation of item size and layout. */
+    void refresh();
+
 protected:
     void resizeEvent(QResizeEvent* event) override;
 

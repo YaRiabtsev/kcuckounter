@@ -253,22 +253,28 @@ void Table::pick_up_cards() {
 }
 
 void Table::set_card_theme(const QString& theme) {
+    const QString path = QStandardPaths::locate(
+        QStandardPaths::GenericDataLocation,
+        QString("carddecks/svg-%1/%1.svgz").arg(theme)
+    );
+    if (path.isEmpty()) {
+        qWarning("Card theme '%s' could not be found.", qPrintable(theme));
+        return;
+    }
     current_theme = theme;
     delete renderer;
-    renderer = new QSvgRenderer(
-        QStandardPaths::locate(
-            QStandardPaths::GenericDataLocation,
-            QString("carddecks/svg-%1/%1.svgz").arg(theme)
-        )
-    );
+    renderer = new QSvgRenderer(path);
     bounds = renderer->boundsOnElement("back");
-    delete strategy_info;
+    const StrategyInfo* old_strategy_info = strategy_info;
     strategy_info = new StrategyInfo(renderer);
     for (TableSlot* slot : items) {
         slot->set_renderer(renderer);
         slot->set_strategies(strategy_info);
     }
-    reorganize_table(column_count, scale, rotated);
+    delete old_strategy_info;
+    calculate_new_column_count(
+        size(), bounds.size(), static_cast<qint32>(items.count())
+    );
 }
 
 void Table::create_new_game(const int level) {
@@ -307,8 +313,30 @@ void Table::create_new_game(const int level) {
     );
 }
 
+bool Table::is_launching() const { return launching; }
+
+void Table::set_card_mode(const int level) {
+    switch (static_cast<qint32>(level)) {
+    case 1:
+        mode = card_mode::Ordered;
+        break;
+    case 3:
+        mode = card_mode::Random;
+        break;
+    case 10:
+        mode = card_mode::Simultaneous;
+        break;
+    default:
+        break;
+    }
+}
+
 void Table::pause(const bool paused) {
-    if (launching) {
+    if (launching && !paused) {
+        if (available.isEmpty()) {
+            emit game_paused(true);
+            return;
+        }
         launching = false;
         if (const TableSlot* last = items.last(); last->is_fake()) {
             items.pop_back();

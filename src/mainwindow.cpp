@@ -29,6 +29,7 @@
 #include <QComboBox>
 #include <QDir>
 #include <QFormLayout>
+#include <QIcon>
 #include <QMessageBox>
 #include <QPainter>
 #include <QPushButton>
@@ -65,10 +66,13 @@ MainWindow::MainWindow(QWidget* parent)
     speed_slider->setRange(100, 1000);
     speed_slider->setValue(300);
     speed_slider->setToolTip(i18n("Card pickup interval (ms)"));
+    lives_label->setText("");
+    update_lives_display();
 
     statusBar()->insertPermanentWidget(0, score_label);
     statusBar()->insertPermanentWidget(1, time_label);
     statusBar()->insertPermanentWidget(2, speed_slider);
+    statusBar()->insertPermanentWidget(3, lives_label);
 
     table = new Table;
     connect(speed_slider, &QSlider::valueChanged, table, &Table::set_speed);
@@ -134,17 +138,19 @@ void MainWindow::setup_actions() {
     ));
     KGameDifficultyGUI::init(this);
     connect(
-        diff, &KGameDifficulty::currentLevelChanged, this, &MainWindow::new_game
+        diff, &KGameDifficulty::currentLevelChanged, this,
+        &MainWindow::card_mode_changed
     );
 
     setupGUI(Default);
 
-    auto* mainToolBar = addToolBar(i18n("Main Toolbar"));
-    mainToolBar->addAction(
+    auto* main_tool_bar = addToolBar(i18n("Main Toolbar"));
+    main_tool_bar->setObjectName(QStringLiteral("main_tool_bar"));
+    main_tool_bar->addAction(
         actionCollection()->action(QStringLiteral("game_new"))
     );
-    mainToolBar->addAction(action_end_game);
-    mainToolBar->addAction(action_pause);
+    main_tool_bar->addAction(action_end_game);
+    main_tool_bar->addAction(action_pause);
 }
 
 void MainWindow::new_game() {
@@ -166,8 +172,10 @@ void MainWindow::new_game() {
     );
     action_pause->setEnabled(true);
     if (action_end_game) {
-        action_end_game->setEnabled(true);
+        action_end_game->setEnabled(false);
     }
+    action_pause->setText(i18n("&Start"));
+    action_pause->setIcon(QIcon::fromTheme("media-playback-start"));
     if (!action_pause->isChecked()) {
         action_pause->setChecked(true);
     } else {
@@ -175,6 +183,8 @@ void MainWindow::new_game() {
     }
     score = { 0, 0 };
     score_label->setText(i18n("Score: 0/0"));
+    lives = max_lives;
+    update_lives_display();
     KGameDifficulty::global()->setGameRunning(false);
     time_label->setText(i18n("Time: 00:00"));
 }
@@ -298,13 +308,19 @@ void MainWindow::configure_settings() {
     auto* carousel = new Carousel(QSizeF(60, 90));
 
     auto update_preview = [&](const QString& id) {
-        delete theme_renderer;
-        theme_renderer = new QSvgRenderer(
-            QStandardPaths::locate(
-                QStandardPaths::GenericDataLocation,
-                QStringLiteral("carddecks/svg-%1/%1.svgz").arg(id)
-            )
+        const QString path = QStandardPaths::locate(
+            QStandardPaths::GenericDataLocation,
+            QStringLiteral("carddecks/svg-%1/%1.svgz").arg(id)
         );
+        if (path.isEmpty()) {
+            QMessageBox::warning(
+                this, i18n("Missing Theme"),
+                i18n("Card theme '%1' could not be found.", id)
+            );
+            return;
+        }
+        delete theme_renderer;
+        theme_renderer = new QSvgRenderer(path);
         if (preview_cards.isEmpty()) {
             const auto deck = Cards::generate_deck(1);
             for (const qint32 c : deck) {
@@ -318,6 +334,7 @@ void MainWindow::configure_settings() {
                 card->set_renderer(theme_renderer);
             }
         }
+        carousel->refresh();
     };
 
     update_preview(theme_combo->currentData().toString());
@@ -413,7 +430,15 @@ void MainWindow::configure_settings() {
 }
 
 void MainWindow::pause_game(const bool paused) const {
+    const bool was_launching = table->is_launching();
     table->pause(paused);
+    if (was_launching && !table->is_launching()) {
+        action_pause->setText(i18n("&Pause"));
+        action_pause->setIcon(QIcon::fromTheme("media-playback-pause"));
+        if (action_end_game) {
+            action_end_game->setEnabled(true);
+        }
+    }
     if (paused) {
         game_clock->pause();
         KGameDifficulty::global()->setGameRunning(false);
@@ -435,4 +460,35 @@ void MainWindow::on_score_update(const bool inc) {
     score.second++;
     score.first += inc;
     score_label->setText(i18n("Score: %1/%2", score.first, score.second));
+    if (!inc) {
+        if (lives > 0) {
+            --lives;
+            update_lives_display();
+            if (lives == 0) {
+                force_end_game();
+            }
+        }
+    }
+}
+
+void MainWindow::update_lives_display() const {
+    QString hearts;
+    if (lives) {
+        hearts += QString("<font color='red'>%1</font>")
+                      .arg(QString("&#x2665;").repeated(lives));
+    }
+    if (max_lives > lives) {
+        hearts += QString("<font color='black'>%1</font>")
+                      .arg(QString("&#x2665;").repeated(max_lives - lives));
+    }
+    lives_label->setText(hearts);
+}
+
+void MainWindow::card_mode_changed() {
+    const int level = KGameDifficulty::global()->currentLevel()->hardness();
+    if (table->is_launching()) {
+        table->set_card_mode(level);
+    } else {
+        new_game();
+    }
 }

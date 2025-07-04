@@ -48,10 +48,16 @@ public:
 
     void create_new_game(int level);
 
+    /** Return true if the game was not started yet. */
+    [[nodiscard]] bool is_launching() const;
+
     void pause(bool paused);
 
 public slots:
     void set_card_theme(const QString& theme);
+
+    /** Change card dealing mode without resetting the game. */
+    void set_card_mode(int level);
 
 public Q_SLOTS:
     void set_speed(int interval_ms) const;

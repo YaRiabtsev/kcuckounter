@@ -76,6 +76,8 @@ void Carousel::add_widget(QWidget* widget) {
     update_props(size());
 }
 
+void Carousel::refresh() { update_props(size()); }
+
 void Carousel::update_props(const QSize size) {
     const auto item_size
         = QSizeF(size.height() * ratio.width() / ratio.height(), size.height());
